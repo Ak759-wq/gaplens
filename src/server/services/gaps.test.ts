@@ -10,7 +10,7 @@ import { AIProviderError } from "@/server/ai/errors";
 import type { Claim, Source, TopicCoverage } from "@/server/ai/schemas";
 import { AliasMap } from "./corpus";
 import { classifyPositions, cycleOfClaim, detectContradictions } from "./contradictionDetector";
-import { analyzeFreshness, reconcileAiFreshness } from "./freshnessAnalyzer";
+import { analyzeFreshness, checkSupersession, reconcileAiFreshness } from "./freshnessAnalyzer";
 import { assessCoverage, detectGaps } from "./gapDetector";
 import { claimScope, differingValues, extractValues, findCycleMentions, inForceDetermination, parseAskedScope, textScope } from "./scope";
 import { baselineTopics, detectDomain, mergePlannedTopics, planTopics, questionAspects, type PlannedTopic } from "./topicPlanner";
@@ -315,5 +315,15 @@ describe("AI freshness reconciled with rule-based in-force determination", () =>
     expect(r.aiSuppressed).toBe(1);
     expect(r.warnings.filter((w) => w.origin === "ai")).toEqual([]);
     expect(r.warnings.filter((w) => w.sourceId === "s1" && w.reason === "references_past_cycle")).toEqual([]);
+  });
+  it("only accepts 'superseded by a newer source' when the newer source has a later reliable date", () => {
+    const g = { severity: "high" as const, description: "Deadline revised." };
+    // NSP announcements page is undated; aggregator date = retrieval day → cannot confirm supersession
+    const d = checkSupersession(g, S4, [S5]);
+    expect(d.severity).toBe("low");
+    expect(d.description).toMatch(/^Requires verification: Deadline revised\. \(Note: supersession could not be confirmed from dates: none of the other cited sources \(scholarships\.gov\.in\)/);
+    // a genuinely newer dated official source confirms it
+    expect(checkSupersession(g, S2, [src("n", "https://scholarships.gov.in/n", "x", { publishedAt: "2026-07-01" })])).toEqual(g);
+    expect(checkSupersession(g, S2, []).severity).toBe("low");
   });
 });

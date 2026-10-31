@@ -4,7 +4,7 @@ import { buildFreshnessAnalysisPrompt } from "@/server/ai/prompts";
 import { freshnessLlmSchema, type Claim, type EvidenceRef, type FreshnessWarning, type Source } from "@/server/ai/schemas";
 import { DATE_TOKEN_SRC, parseLooseDate } from "@/server/extract/dates";
 import { AliasMap, claimsForPrompt, evidenceFromClaims, sourcesForPrompt } from "./corpus";
-import { currentCycleStart, findCycleMentions, inForceDetermination } from "./scope";
+import { currentCycleStart, findCycleMentions, hasReliableDate, inForceDetermination } from "./scope";
 import type { ExtractedCorpus, StageContext } from "./types";
 
 export { currentCycleStart, findCycleMentions };
@@ -174,14 +174,18 @@ export async function analyzeFreshness(corpus: ExtractedCorpus, ctx: StageContex
   );
   const have = new Set(rules.map((w) => `${w.sourceId}:${w.reason}`));
   const cycleNow = currentCycleStart(now);
+  const byId = new Map(corpus.sources.map((s) => [s.id, s]));
   const ai: FreshnessWarning[] = [];
   let suppressed = 0;
   for (const w of out.warnings.slice(0, 20)) {
     const src = sa.resolve(w.sourceId);
-    const cited = ca.resolveMany(w.claimIds).filter((c) => !src || c.sourceId === src.id);
+    const cited = ca.resolveMany(w.claimIds);
     if (!src || cited.length === 0) continue;
     if (have.has(`${src.id}:${w.reason}`)) continue;
-    const g = reconcileAiFreshness(w.reason, w.severity, w.description, cited, src, cycleNow);
+    const own = cited.filter((c) => c.sourceId === src.id);
+    const others = [...new Set(cited.filter((c) => c.sourceId !== src.id).map((c) => c.sourceId))].map((id) => byId.get(id)).filter((x): x is Source => !!x);
+    let g = reconcileAiFreshness(w.reason, w.severity, w.description, own.length ? own : cited, src, cycleNow);
+    if (g !== "suppress" && w.reason === "superseded_by_newer_source") g = checkSupersession(g, src, others);
     if (g === "suppress") {
       suppressed++;
       continue;
@@ -200,6 +204,34 @@ export async function analyzeFreshness(corpus: ExtractedCorpus, ctx: StageContex
   }
   return { warnings: [...rules, ...ai], aiUsed: true, aiSuppressed: suppressed };
 }
+
+const latestReliable = (s: Source) => (hasReliableDate(s) ? [s.modifiedAt, s.publishedAt].filter((d): d is string => !!d).sort().pop()!.slice(0, 10) : null);
+
+/**
+ * "Superseded by a newer source" needs a newer source: at least one other cited source must state a
+ * reliable date later than this one's (or this one must be undated). Otherwise the note is kept only as
+ * "requires verification", low severity, with the reason; the AI's own dating is not trusted.
+ */
+export function checkSupersession(g: { severity: "high" | "medium" | "low"; description: string }, src: Source, others: Source[]): { severity: "high" | "medium" | "low"; description: string } {
+  const mine = latestReliable(src);
+  const newer = others.filter((o) => {
+    const d = latestReliable(o);
+    return !!d && (!mine || d > mine);
+  });
+  if (others.length && newer.length) return g;
+  const why = others.length
+    ? `none of the other cited sources (${others.map((o) => safeName(o)).join(", ")}) states a reliable publication date later than this one${mine ? ` (${mine})` : ""}`
+    : "it does not cite a claim from another source";
+  return { severity: "low", description: `Requires verification: ${g.description} (Note: supersession could not be confirmed from dates: ${why}.)` };
+}
+
+const safeName = (s: Source) => {
+  try {
+    return s.url ? new URL(s.url).hostname.replace(/^www\./, "") : s.fileName ?? "source";
+  } catch {
+    return s.fileName ?? "source";
+  }
+};
 
 const OPEN_WORDING_RE = /\b(?:onwards?|until\s+further\s+orders?|till\s+further\s+orders?|with\s+effect\s+from|w\.?\s?e\.?\s?f\.?|effective\s+from|from\s+(?:the\s+)?(?:academic|financial|fiscal)\s+year)\b/i;
 

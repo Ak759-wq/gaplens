@@ -44,6 +44,8 @@ ASKED SCOPE: ${scopeLine}
 TASK: For EACH topic in TOPICS (use its exact key; do not add or drop topics), decide coverage using ONLY the CLAIMS below. Be strict:
 - "covered": at least one claim EXPLICITLY answers the topic FOR THE ASKED SCOPE. If the question names a cycle/year, a claim about a different cycle/year does NOT cover it, and for time-sensitive topics a claim with no year does NOT cover it.
 - "partial": claims touch the topic but leave an important part open: they answer it only for another cycle/year, give no year, only say where the information will be published (e.g. "timelines will be on the portal"), are vague ("₹20,000+"), or come only from a third-party site with no reliable date.
+- A topic whose label has several parts ("method and timeline", "helpline / contact and grievance channel") is "covered" only when EVERY part is answered; otherwise "partial", naming the unanswered part.
+- If claims from different sources give conflicting values for the topic, it is still "covered" only if an official source states it for the asked scope; mention the conflict in "missingInformation".
 - "missing": no claim addresses it (claimIds = []).
 List every claim id that bears on the topic (including the partial or past-cycle ones).
 For partial/missing topics: "missingInformation" says precisely what was not found in the reviewed sources (e.g. "No 2026-27 deadline; sources give 31.10.2025 for 2025-26"), and "whatToInvestigate" says where/how to confirm it (e.g. the official notification for the asked cycle). Write "not found in the reviewed sources", never "does not exist".

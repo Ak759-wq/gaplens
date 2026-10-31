@@ -21,6 +21,7 @@ TASK: Using the CLAIMS, find additional freshness problems the date rules could 
 Return JSON: {"warnings":[{"sourceId":"S1","reason":...,"description":string,"severity":"high"|"medium"|"low","claimIds":["C3"]}]}
 A rule that says it applies "<year> onwards", "from financial year <year>", "w.e.f. <year>" or "until further orders" is still IN FORCE: never flag it as references_past_cycle or dated_old just because the starting year is old.
 A difference between cycles (e.g. a 2025-26 deadline vs a 2026-27 one) is a freshness/cycle issue of the older source, not a contradiction.
+superseded_by_newer_source needs a newer source: cite claims from BOTH sources, and only call a source newer when its "published"/"updated" date in SOURCES is later and "reliableDate" is true. Never state a publication date that SOURCES does not give.
 Every warning must cite at least one claim id. An undated source is NOT outdated: never warn just because a date is missing. Return {"warnings":[]} if nothing else applies.
 
 SOURCES:
