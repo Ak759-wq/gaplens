@@ -31,7 +31,8 @@ export function getIntegrationStatus(env: NodeJS.ProcessEnv = process.env): Inte
     anonKey: has(env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
     serviceRoleKey: has(env.SUPABASE_SERVICE_ROLE_KEY),
   };
-  const supabaseConfigured = supabase.url && supabase.serviceRoleKey;
+  // GAPLENS_DB=memory: local demo store (no persistence across restarts).
+  const supabaseConfigured = (supabase.url && supabase.serviceRoleKey) || env.GAPLENS_DB === "memory";
   const gemini = has(env.GEMINI_API_KEY);
   const openrouter = has(env.OPENROUTER_API_KEY);
   const pref = env.LLM_PROVIDER?.trim().toLowerCase() || "auto";

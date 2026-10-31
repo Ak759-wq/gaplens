@@ -13,8 +13,9 @@ export function createMemoryRepositories(): Repositories & { _tables: Record<str
   const findings: FindingRow[] = [];
   const checklist: ChecklistItemRow[] = [];
   const reports: ReportRow[] = [];
-  let tick = 0;
-  const now = () => new Date(Date.UTC(2026, 0, 1) + tick++ * 1000).toISOString();
+  let last = 0;
+  // Real clock, strictly increasing so ordering by created_at is stable.
+  const now = () => new Date((last = Math.max(Date.now(), last + 1))).toISOString();
   const stamp = <T>(row: Insert<T>): T => ({ ...(row as object), id: row.id ?? randomUUID(), created_at: now() }) as unknown as T;
   const clone = <T>(x: T): T => structuredClone(x);
   const removeWhere = <T>(arr: T[], pred: (x: T) => boolean) => {
