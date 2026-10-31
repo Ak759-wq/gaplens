@@ -8,7 +8,7 @@ import type { DraftSource } from "./types";
 
 function NotYet({ label }: { label: string }) {
   return (
-    <span className="text-muted-foreground" title={`${label} is filled in by extraction (Phase 2). It is never guessed.`}>
+    <span className="text-muted-foreground" title={`${label} is read from the source when the analysis starts. It is never guessed.`}>
       —<span className="sr-only">{label} not extracted yet</span>
     </span>
   );

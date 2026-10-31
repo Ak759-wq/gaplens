@@ -5,9 +5,10 @@ export type DraftSource =
 export type Brief = { topic: string; question: string; objective: string };
 
 export type ClientIntegrationStatus = {
-  openrouter: boolean;
+  llm: { activeProvider: "gemini" | "openrouter" | null; geminiModel: string; openrouterModel: string };
   supabase: boolean;
   firecrawl: boolean;
+  search: boolean;
   pipelineReady: boolean;
 };
 

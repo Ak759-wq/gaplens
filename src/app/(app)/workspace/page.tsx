@@ -17,9 +17,10 @@ export default function WorkspacePage() {
       />
       <ResearchWorkspace
         integrations={{
-          openrouter: s.openrouter.configured,
+          llm: { activeProvider: s.llm.activeProvider, geminiModel: s.llm.gemini.model, openrouterModel: s.llm.openrouter.model },
           supabase: s.supabase.configured,
           firecrawl: s.firecrawl.configured,
+          search: s.search.configured,
           pipelineReady: s.pipelineReady,
         }}
       />
