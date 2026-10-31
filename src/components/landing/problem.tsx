@@ -17,10 +17,6 @@ const POINTS = [
 export function Problem() {
   return (
     <section id="problem" data-header-dark aria-labelledby="problem-title" className="relative bg-black text-white">
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(60%_100%_at_50%_0%,rgba(94,234,212,0.07),transparent_70%)]"
-        aria-hidden="true"
-      />
       <div className="relative mx-auto max-w-6xl px-4 pt-20 pb-32 sm:px-6 sm:pt-24 sm:pb-40">
         <div className="max-w-2xl">
           <p className="mb-3 font-mono text-xs tracking-[0.14em] text-[#8ef0de] uppercase">The information-gap problem</p>

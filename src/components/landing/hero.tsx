@@ -21,7 +21,7 @@ export function Hero() {
     >
       <HeroStage />
 
-      <div className="hero-copy relative z-20 mx-auto flex w-full max-w-5xl flex-col items-center px-5 pt-[clamp(6.5rem,15svh,10rem)] text-center sm:px-6">
+      <div className="hero-copy relative z-20 mx-auto flex w-full max-w-5xl flex-col items-center px-5 pt-[clamp(5.75rem,13svh,9rem)] text-center sm:px-6">
         <Link
           href="/#how-it-works"
           className="hero-fade group inline-flex items-center gap-2 rounded-full border border-white/[0.12] bg-white/[0.04] py-1 pr-3 pl-1 text-[13px] text-white/75 backdrop-blur-md transition-colors hover:border-white/25 hover:text-white"
@@ -34,7 +34,7 @@ export function Hero() {
 
         <h1
           id="hero-title"
-          className="mt-7 text-[clamp(2.4rem,7.4vw,5.4rem)] leading-[1.02] font-medium tracking-[-0.045em] text-balance"
+          className="mt-7 text-[clamp(2.4rem,min(7.4vw,10.5svh),5.4rem)] leading-[1.02] font-medium tracking-[-0.045em] text-balance"
         >
           <span className="block">
             {LINE_ONE.map((w) => (
@@ -45,8 +45,8 @@ export function Hero() {
             {LINE_TWO.map((w) => (
               <span key={w}>{word(w)} </span>
             ))}
-            <span className="hero-word hero-gradient-text" style={{ animationDelay: `${0.35 + i++ * 0.07}s` }}>
-              missing.
+            <span className="hero-word" style={{ animationDelay: `${0.35 + i++ * 0.07}s` }}>
+              <span className="hero-gradient-text">missing.</span>
             </span>
           </span>
         </h1>

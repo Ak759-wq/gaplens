@@ -151,8 +151,8 @@ export function HeroStage() {
       </div>
 
       {/* Focal moon */}
-      <div className="hero-par-moon absolute bottom-0 left-1/2 w-[260vw] sm:w-[190vw] md:w-[max(1180px,110vw,176svh)]">
-        <div className="hero-rise relative translate-y-[13%] md:translate-y-[21%]">
+      <div className="hero-par-moon absolute bottom-0 left-1/2 w-[240vw] sm:w-[170vw] md:w-[clamp(960px,min(92vw,140svh),1900px)]">
+        <div className="hero-rise relative translate-y-[8%] md:translate-y-[17%]">
           <Image
             src="/hero/moon.webp"
             alt=""
@@ -160,7 +160,7 @@ export function HeroStage() {
             height={1117}
             priority
             quality={80}
-            sizes="(max-width: 767px) 260vw, max(1180px, 110vw)"
+            sizes="(max-width: 767px) 240vw, min(92vw, 1900px)"
             className="h-auto w-full select-none"
             draggable={false}
           />
@@ -183,29 +183,29 @@ export function HeroStage() {
       </div>
 
       {/* Cloud banks: in front of the moon, part outward on scroll */}
-      <div className="hero-par-cloud-l absolute bottom-0 left-0 w-[95vw] sm:w-[70vw] md:w-[min(52vw,980px)]">
-        <div className="hero-cloud-in-l -translate-x-[38%] translate-y-[30%] sm:-translate-x-[24%] md:-translate-x-[16%] md:translate-y-[26%]">
+      <div className="hero-par-cloud-l absolute bottom-0 left-0 w-[80vw] sm:w-[62vw] md:w-[min(48vw,940px)]">
+        <div className="hero-cloud-in-l -translate-x-[38%] translate-y-[6%] sm:-translate-x-[20%] sm:translate-y-[24%] md:-translate-x-[12%] md:translate-y-[24%]">
           <Image
             src="/hero/clouds-left.webp"
             alt=""
             width={980}
             height={965}
             quality={78}
-            sizes="(max-width: 767px) 95vw, 52vw"
+            sizes="(max-width: 767px) 80vw, 48vw"
             className="hero-cloud-mask-l h-auto w-full select-none"
             draggable={false}
           />
         </div>
       </div>
-      <div className="hero-par-cloud-r absolute right-0 bottom-0 w-[95vw] sm:w-[70vw] md:w-[min(52vw,980px)]">
-        <div className="hero-cloud-in-r translate-x-[38%] translate-y-[30%] sm:translate-x-[24%] md:translate-x-[16%] md:translate-y-[26%]">
+      <div className="hero-par-cloud-r absolute right-0 bottom-0 w-[80vw] sm:w-[62vw] md:w-[min(48vw,940px)]">
+        <div className="hero-cloud-in-r translate-x-[38%] translate-y-[6%] sm:translate-x-[14%] sm:translate-y-[24%] md:translate-x-[6%] md:translate-y-[24%]">
           <Image
             src="/hero/clouds-right.webp"
             alt=""
             width={980}
             height={965}
             quality={78}
-            sizes="(max-width: 767px) 95vw, 52vw"
+            sizes="(max-width: 767px) 80vw, 48vw"
             className="hero-cloud-mask-r h-auto w-full select-none"
             draggable={false}
           />
@@ -215,7 +215,7 @@ export function HeroStage() {
       {/* Film grain + vignette, then a soft floor into the next (dark) section */}
       <div className="hero-grain absolute inset-0 opacity-[0.13] mix-blend-overlay" />
       <div className="absolute inset-0 bg-[radial-gradient(130%_90%_at_50%_40%,transparent_55%,rgba(0,0,0,0.55)_100%)]" />
-      <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-b from-transparent to-black" />
+      <div className="absolute inset-x-0 bottom-0 h-[15%] min-h-28 md:h-[24%] md:min-h-40 bg-gradient-to-b from-transparent via-black/75 to-black" />
     </div>
   );
 }

@@ -125,7 +125,7 @@
 }
 .hero-copy {
   transform: translate3d(0, calc(var(--sp) * -80px), 0);
-  opacity: clamp(0, calc(1 - var(--sp) * 1.8), 1);
+  opacity: clamp(0, calc(1 - var(--sp) * 2.6), 1);
 }
 
 .hero-cloud-mask-l { mask-image: linear-gradient(to right, #000 52%, transparent 96%); }
@@ -141,6 +141,7 @@
   background-clip: text;
   color: transparent;
   padding-right: 0.04em;
+  filter: drop-shadow(0 0 28px rgba(142, 240, 222, 0.2));
 }
 
 /* Entrance */
