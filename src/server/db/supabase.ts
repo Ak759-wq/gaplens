@@ -30,15 +30,15 @@ export function isSupabaseConfigured(env: NodeJS.ProcessEnv = process.env): bool
 }
 
 /**
- * supabase-js always sends `Authorization: Bearer <key>`. That is right for legacy JWT keys, but the
- * newer non-JWT secret keys (`sb_secret_…`) and proxy-injected keys authenticate via the `apikey`
- * header alone, and PostgREST rejects a non-JWT bearer token ("Expected 3 parts in JWT").
- * For non-JWT keys we therefore drop the bearer header and rely on `apikey`.
+ * supabase-js sends `Authorization: Bearer <key>`. That is correct for legacy JWT keys and for the
+ * new `sb_secret_…` keys (the gateway accepts a bearer equal to the apikey). Only for any OTHER opaque
+ * value (e.g. a key injected by an outbound proxy, where PostgREST would reject the bearer with
+ * "Expected 3 parts in JWT") do we drop the bearer and rely on the `apikey` header.
  */
 export function apiKeyOnlyFetch(key: string): typeof fetch {
-  const isJwt = key.split(".").length === 3;
+  const passThrough = key.split(".").length === 3 || key.startsWith("sb_");
   return (input, init) => {
-    if (isJwt) return fetch(input, init);
+    if (passThrough) return fetch(input, init);
     const headers = new Headers(init?.headers);
     if (headers.get("authorization") === `Bearer ${key}`) headers.delete("authorization");
     return fetch(input, { ...init, headers });
