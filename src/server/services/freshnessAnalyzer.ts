@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { buildFreshnessAnalysisPrompt } from "@/server/ai/prompts";
 import { freshnessLlmSchema, type Claim, type EvidenceRef, type FreshnessWarning, type Source } from "@/server/ai/schemas";
 import { DATE_TOKEN_SRC, parseLooseDate } from "@/server/extract/dates";
-import { AliasMap, claimsForPrompt, evidenceFromClaims, sourcesForPrompt } from "./corpus";
+import { AliasMap, claimsForPrompt, evidenceFromClaims, humanizeAliases, sourcesForPrompt } from "./corpus";
 import { currentCycleStart, findCycleMentions, hasReliableDate, inForceDetermination } from "./scope";
 import type { ExtractedCorpus, StageContext } from "./types";
 
@@ -184,7 +184,7 @@ export async function analyzeFreshness(corpus: ExtractedCorpus, ctx: StageContex
     if (have.has(`${src.id}:${w.reason}`)) continue;
     const own = cited.filter((c) => c.sourceId === src.id);
     const others = [...new Set(cited.filter((c) => c.sourceId !== src.id).map((c) => c.sourceId))].map((id) => byId.get(id)).filter((x): x is Source => !!x);
-    let g = reconcileAiFreshness(w.reason, w.severity, w.description, own.length ? own : cited, src, cycleNow);
+    let g = reconcileAiFreshness(w.reason, w.severity, humanizeAliases(w.description, ca, sa), own.length ? own : cited, src, cycleNow);
     if (g !== "suppress" && w.reason === "superseded_by_newer_source") g = checkSupersession(g, src, others);
     if (g === "suppress") {
       suppressed++;

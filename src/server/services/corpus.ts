@@ -85,3 +85,18 @@ export function safeHost(url: string): string | null {
     return null;
   }
 }
+
+/**
+ * Model-written text sometimes mentions prompt aliases ("claim C37", "S4"). Those mean nothing to a
+ * reader, so they are replaced with the source's host/file name. Unknown aliases are left untouched.
+ */
+export function humanizeAliases(text: string, ca: AliasMap<Claim>, sa: AliasMap<Source>): string {
+  const name = (s: Source | undefined) => (s ? (s.url ? safeHost(s.url) : null) ?? s.fileName ?? s.title ?? "a source" : null);
+  return text
+    .replace(/\b(?:[Cc]laims?\s+)?C(\d{1,4})\b(?:\s+from\s+S\d{1,3}\b)?/g, (m, n: string) => {
+      const c = ca.resolve(`C${n}`);
+      const nm = c ? name(sa.resolve(sa.alias(c.sourceId))) : null;
+      return nm ? `a claim from ${nm}` : m;
+    })
+    .replace(/\bS(\d{1,3})\b/g, (m, n: string) => name(sa.resolve(`S${n}`)) ?? m);
+}

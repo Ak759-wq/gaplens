@@ -22,7 +22,7 @@ The browser drives the pipeline one short API call at a time, so every call fits
         title + dates from metadata / JSON-LD / "Last updated" text; never invented            │
    2 POST …/claims {sourceId, chunk} ×N×chunks       claimExtractor (LLM, 24k-char chunks)      │
         every quote verified verbatim against stored text → unverifiable claims DROPPED        │
-   3 POST …/stages/gaps             gapDetector: derive required topics, evidence-checked coverage
+   3 POST …/stages/gaps             topicPlanner (brief + domain checklist, never sees claims) → gapDetector: strict, cycle-scoped coverage
    4 POST …/stages/contradictions   deterministic cross-source pairing by topic → LLM judges pairs
    5 POST …/stages/freshness        deterministic date/cycle/deadline rules → optional LLM assist
    6 POST …/stages/questions        questionGenerator (each tied to ≥1 finding)               │
@@ -86,7 +86,16 @@ All server modules import `server-only`, so importing them into a client compone
 2. **The model never supplies evidence quotes after claim extraction.** Later stages cite claims by alias
    (C12); the server resolves aliases to stored, verified claims and builds the evidence from them. Unknown aliases are dropped.
 3. **Coverage needs evidence.** A topic the model calls "covered" without a valid claim becomes "missing"; one called
-   "missing" but citing claims becomes "partial".
+   "missing" but citing claims becomes "partial". Topics are planned from the brief and a domain checklist in a call that never
+   sees the claims (no circular "covered"). If the question names a cycle/year (e.g. 2026-27), "covered" also needs a cited claim
+   for that cycle (deadlines must state the year themselves; other topics may inherit an in-force source such as
+   "2022-23 onwards"), and evidence only from an undated third-party site is downgraded to "partial / requires verification"
+   (`src/server/services/scope.ts`, `topicPlanner.ts`, `gapDetector.ts`).
+3a. **Cycle mismatch ≠ contradiction.** Claims carry their cycle and extracted values (₹, %, dates) into the contradiction
+   check; differences between different cycles are stored as `kind: "cycle_mismatch"`, not counted as contradictions.
+3b. **AI freshness defers to the rules.** AI past-cycle/old notes that rest on "onwards / until further orders" wording are
+   suppressed; others on an in-force source are downgraded. "Superseded by a newer source" needs a cited source with a
+   reliable later date.
 4. **Missing from sources ≠ nonexistent.** Gaps say "not found in the reviewed sources".
 5. **Undated ≠ outdated.** An undated source gets reason `undated`, label *Requires verification*, never
    *Potentially outdated*. Reader-reported "published" dates equal to the retrieval day are ignored as likely dynamic.

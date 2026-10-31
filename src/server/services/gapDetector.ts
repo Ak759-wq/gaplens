@@ -4,7 +4,7 @@ import type { z } from "zod";
 import { buildGapDetectionPrompt } from "@/server/ai/prompts";
 import { coverageLlmSchema, type Claim, type Gap, type Source, type TopicCoverage } from "@/server/ai/schemas";
 import { ConfigError } from "@/server/ai/errors";
-import { claimsForPrompt, corpusAliases, evidenceFromClaims, sourcesForPrompt } from "./corpus";
+import { claimsForPrompt, corpusAliases, evidenceFromClaims, humanizeAliases, sourcesForPrompt } from "./corpus";
 import { claimScope, hasReliableDate, hostOf, isOfficialSource, parseAskedScope, type AskedScope } from "./scope";
 import { planTopics, scopeLine, type PlannedTopic } from "./topicPlanner";
 import type { ExtractedCorpus, StageContext } from "./types";
@@ -38,7 +38,9 @@ export async function detectGaps(corpus: ExtractedCorpus, ctx: StageContext): Pr
     coverageLlmSchema,
     { label: "Gap detection", signal: ctx.signal },
   );
-  const r = assessCoverage(plan.topics, out.assessments, al.claims, corpus.sources, scope);
+  const human = (t?: string) => (t ? humanizeAliases(t, al.claims, al.sources) : t);
+  const assessments = out.assessments.map((a) => ({ ...a, missingInformation: human(a.missingInformation), whatToInvestigate: human(a.whatToInvestigate) }));
+  const r = assessCoverage(plan.topics, assessments, al.claims, corpus.sources, scope);
   return { ...r, askedScope: scope?.label ?? null, planning: { aiUsed: plan.aiUsed, aiError: plan.aiError, topics: plan.topics.length } };
 }
 

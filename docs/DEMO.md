@@ -11,6 +11,8 @@ Real-world success scenario for an Indian government scholarship, run from the b
 
 ## Sources
 
+The workspace's **Load example** button pre-fills this brief and S1–S5 (real public URLs; nothing is pre-analysed).
+
 | # | Source | Kind | Why it's in the set |
 |---|---|---|---|
 | S1 | https://scholarships.gov.in/public/schemeGuidelines/CSSS_GUIDLINES_07022024_updated.pdf | Official guidelines (PDF, NSP) | Authoritative scheme rules |
@@ -64,20 +66,95 @@ Not flagged, correctly:
 AI stages in this run returned `503 config_required` ("Configuration required: no AI provider key…"), and with a fake BYO
 Gemini key `401 llm_auth`. Nothing was simulated.
 
-## Run 2: full AI pipeline with Gemini (pending)
+## Run 2: full AI pipeline on the live deployment (Gemini 2.5 Flash)
 
-The Gemini key cannot be used from the build sandbox: outbound calls to `generativelanguage.googleapis.com` get a Google
-OAuth token injected and fail with `403 ACCESS_TOKEN_SCOPE_INSUFFICIENT`. All AI stages are therefore covered by mocked-LLM
-tests (`src/server/ai/llm.test.ts`, `tests/pipeline.test.ts`) and must be run live on the Vercel deployment:
+Run on **31 Oct 2026, ~22:55 IST** against `https://gaplens-ecru.vercel.app` (build `7d177be`, confirmed via `/api/health`),
+driven through the public API by a script: create session → extract ×5 → claims per source → gaps → contradictions →
+freshness → questions → checklist → report, retrying on 429 (one rate-limit retry was needed, at the gaps stage).
+Brief as above, sources S1–S5 (no PDF upload). Session id: **`6fb7cc10-7d30-4fbf-9059-469bf8338ee4`**
+(`GET /api/sessions/6fb7cc10-7d30-4fbf-9059-469bf8338ee4`). Report model: `gemini:gemini-2.5-flash`.
 
-1. Set `GEMINI_API_KEY` (and Supabase env) on Vercel, apply migrations 0001 + 0002.
-2. Open `/workspace`, enter the brief above and add S1–S5 (optionally upload a real notice PDF).
-3. Click **Analyse sources** and keep the tab open; the runner shows each stage.
-4. Record here: verified claims per source, discarded quotes, topic coverage, gaps, contradictions, AI-assisted freshness
-   warnings, questions and checklist, plus the exported Markdown.
+### Why this run exists
 
-Things the run should be checked for (from the source texts, not from GapLens output): the sources describe different cycles
-(2025-26 notices vs 2026-27 announcements), so deadline and cycle statements may conflict across sources.
+An earlier live run (session `1c2ba076-410c-4554-9ed2-6bbb90cb4b66`, 4 sources, before this fix) produced **12 topics, all
+"covered", 0 gaps**. The topics were derived from what the claims said (circular), and "Application deadline for 2026-27"
+was marked covered by a single aggregator claim, "Deadline 31 Oct" (no year), while the dated official sources only gave
+31.10.2025 (the 2025-26 cycle). Build `7d177be` changed this:
+
+- **Topic planning is independent of the claims**: a deterministic scholarship/scheme checklist (eligibility, income limit,
+  amount, deadline *for the asked cycle*, documents, renewal, continuation conditions, selection, disbursement, what's covered,
+  quotas, official contact) plus aspects the question lists, plus up to 3 extra topics from an LLM call that sees only the brief.
+- **Strict coverage**: a second LLM call assesses the planned topics against verified claims, then a deterministic post-check
+  downgrades "covered" to "partial / requires verification" when no cited claim matches the asked cycle (2026-27), when a
+  time-sensitive claim has no year, or when only an undated third-party site supports it.
+- **Contradictions** get the extracted values (₹, %, dates) and the cycle of each claim; cross-cycle differences become
+  "cycle mismatch", not contradictions.
+- **AI freshness** notes that conflict with the rule engine's "2022-23 onwards / until further orders" determination are
+  suppressed or downgraded.
+
+### Counts
+
+| | Result |
+|---|---|
+| Sources read | 5 / 5 (CBSE notice, The Hindu, indiascholarships.in, NSP announcements, NSP guidelines PDF) |
+| Verified claims | 90 (23 guidelines, 4 CBSE, 9 The Hindu, 38 aggregator, 16 NSP announcements); 0 discarded as unverifiable |
+| Topics | 12, checked for **2026-27**: 9 covered, 2 partial, 1 not found (the planner LLM added no extra topics) |
+| Gaps | **3** (2 potential gaps, 1 not found in sources) |
+| Contradictions | **1** (same cycle); 0 cycle mismatches; 9 topic groups, 170 cross-source pairs, 5 value differences flagged to the model |
+| Freshness warnings | 9: 7 rule-based (as in Run 1, incl. S5 undated), 2 AI-assisted; 0 AI notes suppressed |
+| Questions / checklist | 6 / 6 |
+
+### Gaps found
+
+1. **Category / reservation quotas and number of awards**, potential gap (low). Downgraded by the deterministic
+   aggregator check: *"Only indiascholarships.in (a third-party site without a reliable publication date) states this for
+   2026-27; no official or dated source in the review confirms it."* Evidence: indiascholarships.in, "50% of the scholarships
+   are reserved for female students, and reservations also apply for SC (15%), ST (7.5%), OBC (27%), and PwD (5%) categories."
+2. **Selection / merit process**, potential gap (medium). Model assessment: only the aggregator's "Candidates are selected
+   based on merit-cum-means" was found; how merit and means are assessed is not in the reviewed sources.
+3. **What the scholarship covers (fees, hostel, other costs)**, not found in the reviewed sources (low). No claim addresses it
+   (shown as "not found in the reviewed sources", not "does not exist").
+
+The deadline topic was **covered** in this run, correctly: the official NSP announcements page states "Closing dates for
+student application is 31-10-2026 …" right after naming the CSSS (Merit Based Scheme) as open, and "The Portal is open for
+Academic year 2026-27 from 1'st June 2026 onwards."
+
+### Contradiction found
+
+**Application deadline for 2026-27** (high, cycles A 2026-27 / B 2026-27, so a genuine same-cycle conflict):
+- A, indiascholarships.in: "The student submission deadline for fresh and renewal applications for the Central Sector Scheme
+  of Scholarship (CSSS) for the 2026-27 academic cycle is September 30, 2026."
+- B, scholarships.gov.in/ViewMoreAnnouncement: "Closing dates for student application is 31-10-2026 and closing date for
+  institute verification is : 15-11-2026 and closing date for L2 verification is : 30/11/2026"
+- Authority signals: scholarships.gov.in is official; one of the two sources is undated. GapLens does not pick a winner.
+
+### Freshness (AI-assisted, in addition to Run 1's rule findings)
+
+- indiascholarships.in, **expired_deadline** (high): its 2026-27 deadline, September 30, 2026, is before the run date. Accurate.
+- indiascholarships.in, **superseded_by_newer_source** (high): said the NSP claim was "published on 2026-10-31". **This was
+  wrong**: the NSP announcements page is undated. Fixed afterwards (build `e41df65`): a supersession note now needs a cited
+  newer source with a reliable later date, otherwise it is downgraded to low "Requires verification" with the reason. That fix
+  is unit-tested but has **not yet been re-run live** (see below).
+
+The NSP guidelines PDF ("Applicable for academic year 2022-23 onwards") got **no** past-cycle warning from either the rules or
+the AI in this run.
+
+### Known limitations seen in this run, and what changed after it
+
+- "Official portal, contact and grievance channel" and "Disbursement method and timeline" were marked covered from portal and
+  DBT claims, although no helpline/grievance channel or payment timeline was stated. After the run (build `e41df65`) the topics
+  were renamed to "Official helpline / contact and grievance channel" and "Disbursement method and timeline (when money is
+  paid)", and the assessment prompt now requires every part of a multi-part topic to be answered.
+- Model text sometimes mentioned prompt aliases ("Claim C37", "C86 from S4"). These are now replaced with source names.
+- The same-cycle deadline conflict did not lower the deadline topic's coverage, because an official source states it.
+  The conflict is reported in Contradictions instead.
+
+### Re-run after the follow-up fixes: blocked by quota
+
+A re-run on build `e41df65` (session `1e451e6e-fccc-4bd5-a084-9d1331bd4cc6`) extracted all 5 sources, but every claim call
+returned 429 with `retryAfterSec ≈ 48,000` (about 13.5 h). The Gemini free-tier **daily** quota for gemini-2.5-flash was
+exhausted, so that session has no claims or findings. The follow-up fixes (`e41df65` and later) are covered by mocked-LLM tests
+only until a live re-run after the quota resets.
 
 ## Database (Supabase) live test
 

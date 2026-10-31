@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { buildContradictionDetectionPrompt } from "@/server/ai/prompts";
 import { contradictionsLlmSchema, type Claim, type Contradiction, type Source, type TopicCoverage } from "@/server/ai/schemas";
 import { ConfigError } from "@/server/ai/errors";
-import { AliasMap, evidenceFromClaims, safeHost, sourcesForPrompt } from "./corpus";
+import { AliasMap, evidenceFromClaims, humanizeAliases, safeHost, sourcesForPrompt } from "./corpus";
 import { cycleLabel, differingValues, extractValues, findCycleMentions, parseLooseDateIso } from "./scope";
 import type { ExtractedCorpus, StageContext } from "./types";
 
@@ -184,14 +184,16 @@ export async function detectContradictions(
       .map((p) => {
         const cl = ca.resolveMany(p.claimIds).filter((x) => !used.has(x.id));
         cl.forEach((x) => used.add(x.id));
-        return { statement: p.statement.slice(0, 1000), claims: cl };
+        return { statement: humanizeAliases(p.statement, ca, sa).slice(0, 1000), claims: cl };
       })
       .filter((p) => p.claims.length > 0);
     const allSources = new Set(resolved.flatMap((p) => p.claims.map((x) => x.sourceId)));
     // Need ≥2 positions and they must not all rest on the same single source.
     if (resolved.length < 2 || allSources.size < 2) continue;
     const cls = classifyPositions(resolved.map((p) => p.claims.map(cycleOf)), c.cycleRelation);
-    const explanations = (c.possibleExplanations ?? []).map((x) => x.slice(0, 500));
+    const human = (t: string) => humanizeAliases(t, ca, sa);
+    c.description = human(c.description);
+    const explanations = (c.possibleExplanations ?? []).map((x) => human(x).slice(0, 500));
     if (cls.kind === "contradiction" && cls.unknown.length) {
       explanations.unshift(`Position ${cls.unknown.map((i) => String.fromCharCode(65 + i)).join(", ")} states no cycle/year, so it may describe a different cycle.`);
     }

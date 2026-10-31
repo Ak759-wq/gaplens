@@ -8,7 +8,7 @@ import type { LlmClient } from "@/server/ai/llm";
 import type { ChatMessage } from "@/server/ai/openrouter";
 import { AIProviderError } from "@/server/ai/errors";
 import type { Claim, Source, TopicCoverage } from "@/server/ai/schemas";
-import { AliasMap } from "./corpus";
+import { AliasMap, humanizeAliases } from "./corpus";
 import { classifyPositions, cycleOfClaim, detectContradictions } from "./contradictionDetector";
 import { analyzeFreshness, checkSupersession, reconcileAiFreshness } from "./freshnessAnalyzer";
 import { assessCoverage, detectGaps } from "./gapDetector";
@@ -325,5 +325,15 @@ describe("AI freshness reconciled with rule-based in-force determination", () =>
     // a genuinely newer dated official source confirms it
     expect(checkSupersession(g, S2, [src("n", "https://scholarships.gov.in/n", "x", { publishedAt: "2026-07-01" })])).toEqual(g);
     expect(checkSupersession(g, S2, []).severity).toBe("low");
+  });
+});
+
+describe("alias humanisation", () => {
+  it("replaces prompt aliases with source names and leaves unknown ones", () => {
+    const sa = new AliasMap([S1, S2, S4], "S");
+    const ca = new AliasMap([c_elig, c_aggDeadline], "C");
+    expect(humanizeAliases("Claim C2 from S3 says 31 Oct; C1 differs; S2 is older; C99 unknown.", ca, sa)).toBe(
+      "a claim from indiascholarships.in says 31 Oct; a claim from scholarships.gov.in differs; cbse.gov.in is older; C99 unknown.",
+    );
   });
 });
