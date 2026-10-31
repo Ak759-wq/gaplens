@@ -42,7 +42,7 @@ export function Hero() {
       {/* 3D scene: full right half on desktop, below the copy on small screens */}
       <HeroVisual className="order-last h-[380px] w-full sm:h-[440px] lg:absolute lg:inset-y-0 lg:right-0 lg:left-[50%] lg:h-auto lg:w-auto xl:left-[47%]" />
 
-      <div className="relative z-10 mx-auto max-w-6xl px-4 pt-16 sm:px-6 lg:pointer-events-none lg:flex lg:min-h-[680px] lg:items-center lg:pt-0 lg:pb-0">
+      <div className="relative z-10 mx-auto w-full max-w-6xl px-4 pt-16 sm:px-6 lg:pointer-events-none lg:flex lg:min-h-[680px] lg:items-center lg:pt-0 lg:pb-0">
         <div className="pointer-events-auto max-w-[560px] lg:max-w-[520px] xl:max-w-[560px]">
           <p className="mb-7 inline-flex max-w-full items-center gap-2 rounded-full border border-white/12 bg-white/[0.04] px-3 py-1 font-mono text-[10.5px] tracking-[0.12em] text-slate-300 uppercase backdrop-blur sm:text-[11px]">
             <span className="size-1.5 shrink-0 rounded-full bg-indigo-300 shadow-[0_0_10px_2px_rgba(165,180,252,0.6)]" aria-hidden="true" />
