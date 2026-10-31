@@ -40,7 +40,7 @@ export function Hero() {
       />
 
       {/* 3D scene: full right half on desktop, below the copy on small screens */}
-      <HeroVisual className="order-last h-[380px] w-full sm:h-[440px] lg:absolute lg:inset-y-0 lg:right-0 lg:left-[50%] lg:h-auto xl:left-[47%]" />
+      <HeroVisual className="order-last h-[380px] w-full sm:h-[440px] lg:absolute lg:inset-y-0 lg:right-0 lg:left-[50%] lg:h-auto lg:w-auto xl:left-[47%]" />
 
       <div className="relative z-10 mx-auto max-w-6xl px-4 pt-16 sm:px-6 lg:pointer-events-none lg:flex lg:min-h-[680px] lg:items-center lg:pt-0 lg:pb-0">
         <div className="pointer-events-auto max-w-[560px] lg:max-w-[520px] xl:max-w-[560px]">
