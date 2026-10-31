@@ -27,7 +27,23 @@ export type SourceRow = {
   extraction_error: string | null;
   content_text: string | null;
   content_sha256: string | null;
+  /** Added by migration 0002 (sources.metadata jsonb). Undefined when 0002 is not applied. */
+  metadata?: SourceMetadata | null;
   created_at: string;
+};
+
+/** Extraction metadata kept alongside a source (migration 0002). Never invented: absent = unknown. */
+export type SourceMetadata = {
+  provider?: string;
+  finalUrl?: string | null;
+  modifiedAt?: string | null;
+  dateEvidence?: string[];
+  warnings?: string[];
+  pages?: number;
+  sizeBytes?: number;
+  charCount?: number;
+  /** Claim extraction progress per source. */
+  claims?: { status: "pending" | "done" | "failed"; chunksDone: number; chunksTotal: number; rejected: number; error?: string };
 };
 
 export type ClaimRow = {
