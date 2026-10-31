@@ -72,7 +72,7 @@ export function OverviewPanel({ view, onJump }: { view: SessionView; onJump: (ta
     { label: "Sources read", value: `${extracted}/${view.sources.length}`, tab: "sources", kind: "info" as const },
     { label: "Verified claims", value: view.claims.length, tab: "extracted", kind: "verified" as const },
     { label: "Information gaps", value: view.gaps.length, tab: "gaps", kind: "gap" as const },
-    { label: "Possible contradictions", value: view.contradictions.length, tab: "contradictions", kind: "contradiction" as const },
+    { label: "Possible contradictions", value: view.contradictions.filter((c) => c.kind !== "cycle_mismatch").length, tab: "contradictions", kind: "contradiction" as const },
     { label: "Freshness warnings", value: datedWarnings, tab: "freshness", kind: "outdated" as const },
     { label: "Unanswered questions", value: view.questions.length, tab: "questions", kind: "ai_suggestion" as const },
     { label: "Checklist done", value: `${done}/${view.checklist.length}`, tab: "checklist", kind: "requires_verification" as const },
@@ -117,10 +117,14 @@ export function OverviewPanel({ view, onJump }: { view: SessionView; onJump: (ta
             <ul className="grid gap-2 sm:grid-cols-2">
               {view.coverage.map((t) => (
                 <li key={t.id} className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm">
-                  <span className="min-w-0 truncate" title={t.whyItMatters}>{t.label}</span>
+                  <span className="min-w-0 truncate" title={t.scopeNote ?? t.whyItMatters}>{t.label}</span>
                   <span className="flex shrink-0 items-center gap-2">
                     <span className="text-xs text-muted-foreground">{t.sourceIds.length} src</span>
-                    <FindingBadge kind={t.status === "covered" ? "verified" : t.status === "partial" ? "gap" : "not_found"} label={t.status === "covered" ? "Covered" : t.status === "partial" ? "Partial" : "Not found"} className="py-0 text-[11px]" />
+                    <FindingBadge
+                      kind={t.status === "covered" ? "verified" : t.status === "partial" ? "gap" : "not_found"}
+                      label={t.status === "covered" ? "Covered" : t.status === "partial" ? (t.verification === "scope_mismatch" ? `Not for ${t.askedScope ?? "asked cycle"}` : t.verification === "aggregator_only" ? "Partial · verify" : "Partial") : "Not found"}
+                      className="py-0 text-[11px]"
+                    />
                   </span>
                 </li>
               ))}
@@ -234,11 +238,11 @@ export function ContradictionsPanel({ view }: { view: SessionView }) {
   }
   return (
     <div className="space-y-4">
-      {[...view.contradictions].sort(bySeverity).map((c) => (
-        <Card key={c.id} accent="border-l-red-400">
+      {[...view.contradictions].sort((a, b) => Number(a.kind === "cycle_mismatch") - Number(b.kind === "cycle_mismatch") || bySeverity(a, b)).map((c) => (
+        <Card key={c.id} accent={c.kind === "cycle_mismatch" ? "border-l-amber-400" : "border-l-red-400"}>
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="font-medium">{c.topic}</h3>
-            <FindingBadge kind="contradiction" />
+            {c.kind === "cycle_mismatch" ? <FindingBadge kind="outdated" label="Cycle mismatch (not a contradiction)" /> : <FindingBadge kind="contradiction" />}
             <SeverityPill severity={c.severity} />
           </div>
           <p className="text-sm">{c.description}</p>
@@ -251,7 +255,12 @@ export function ContradictionsPanel({ view }: { view: SessionView }) {
               </div>
             ))}
           </div>
-          <WhyDetected>these claims are about the same topic, come from different sources, and cannot all be true as stated.</WhyDetected>
+          {c.cycles && c.cycles.some(Boolean) && <p className="text-xs text-muted-foreground">Cycle per position: {c.cycles.map((x, i) => `${String.fromCharCode(65 + i)} ${x ?? "not stated"}`).join(" · ")}</p>}
+          <WhyDetected>
+            {c.kind === "cycle_mismatch"
+              ? "the values differ, but each side refers to a different cycle/year, so this is a freshness issue rather than a contradiction."
+              : "these claims are about the same topic, come from different sources, and cannot all be true as stated."}
+          </WhyDetected>
           {c.possibleExplanations.length > 0 && (
             <div className="rounded-md border border-violet-200 bg-violet-50/60 p-3 text-sm text-violet-900">
               <FindingBadge kind="ai_suggestion" label="AI suggestion: possible explanations" className="mb-1.5" />

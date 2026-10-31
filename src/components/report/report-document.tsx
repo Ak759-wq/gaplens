@@ -81,7 +81,7 @@ export function ReportDocument({ view }: { view: SessionView }) {
       {view.contradictions.length === 0 && <p className="italic text-muted-foreground">No contradictions were detected.</p>}
       {view.contradictions.map((c) => (
         <section key={c.id} className="mb-4 break-inside-avoid">
-          <h3 className="font-semibold">{c.topic} <span className="font-normal text-muted-foreground">· {c.severity}</span></h3>
+          <h3 className="font-semibold">{c.kind === "cycle_mismatch" ? "Cycle mismatch: " : ""}{c.topic} <span className="font-normal text-muted-foreground">· {c.severity}</span></h3>
           <p>{c.description}</p>
           <div className="mt-1 grid grid-cols-2 gap-3">
             {c.positions.map((p, i) => (

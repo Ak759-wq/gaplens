@@ -39,6 +39,13 @@ export const contradictionSchema = z.object({
    * never a verdict: GapLens does not declare a winner.
    */
   authorityNote: z.string().max(600).nullable().optional(),
+  /**
+   * "cycle_mismatch" = the values differ because the sources describe different cycles/years (a
+   * freshness issue, not a contradiction). Absent = "contradiction" (older rows).
+   */
+  kind: z.enum(["contradiction", "cycle_mismatch"]).optional(),
+  /** Cycle/year each position refers to, as determined from the claims (null = not stated). */
+  cycles: z.array(z.string().nullable()).max(10).optional(),
 });
 export type Contradiction = z.infer<typeof contradictionSchema>;
 
@@ -86,6 +93,13 @@ export const topicCoverageSchema = z.object({
   status: z.enum(["covered", "partial", "missing"]),
   claimIds: z.array(idSchema),
   sourceIds: z.array(idSchema),
+  /** Where the topic came from: the domain checklist, the question text, or the AI planner. */
+  origin: z.enum(["checklist", "question", "ai"]).optional(),
+  /** The cycle/year the question asks about, when it names one (e.g. "2026-27"). */
+  askedScope: z.string().max(40).nullable().optional(),
+  /** Why a topic is not fully covered for the asked scope (deterministic post-check). */
+  verification: z.enum(["scope_mismatch", "aggregator_only", "model_assessment"]).nullable().optional(),
+  scopeNote: z.string().max(1000).nullable().optional(),
 });
 export type TopicCoverage = z.infer<typeof topicCoverageSchema>;
 export type ChecklistItem = z.infer<typeof checklistItemSchema>;

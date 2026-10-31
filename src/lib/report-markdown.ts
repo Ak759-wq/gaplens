@@ -100,7 +100,7 @@ export function renderMarkdownReport(v: SessionView): string {
   L.push("## 5. Possible contradictions", "", "_GapLens reports both sides and does not pick a winner._", "");
   if (v.contradictions.length === 0) L.push("_No contradictions were detected between the reviewed sources._", "");
   for (const c of v.contradictions) {
-    L.push(`### ${c.topic} (${c.severity})`, "", c.description, "");
+    L.push(`### ${c.kind === "cycle_mismatch" ? "Cycle mismatch: " : ""}${c.topic} (${c.severity})`, "", c.description, "");
     c.positions.forEach((p, i) => {
       L.push(`**Position ${i + 1}:** ${p.statement} ${p.evidence.map(evLine).join(" ")}`, "");
       for (const e of p.evidence.slice(0, 2)) L.push(quote(e.quote), `> (${alias(e.sourceId)}: ${esc(sourceName(src.get(e.sourceId)))})`, "");

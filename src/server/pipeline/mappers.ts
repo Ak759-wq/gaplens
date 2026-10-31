@@ -73,7 +73,7 @@ export function contradictionToRow(sessionId: string, c: Contradiction): Insert<
     id: c.id,
     session_id: sessionId,
     type: "contradiction",
-    label: "possible_contradiction",
+    label: c.kind === "cycle_mismatch" ? "potentially_outdated" : "possible_contradiction",
     severity: c.severity,
     title: c.topic,
     description: c.description,

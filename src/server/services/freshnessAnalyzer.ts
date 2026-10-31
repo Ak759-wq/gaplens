@@ -4,7 +4,11 @@ import { buildFreshnessAnalysisPrompt } from "@/server/ai/prompts";
 import { freshnessLlmSchema, type Claim, type EvidenceRef, type FreshnessWarning, type Source } from "@/server/ai/schemas";
 import { DATE_TOKEN_SRC, parseLooseDate } from "@/server/extract/dates";
 import { AliasMap, claimsForPrompt, evidenceFromClaims, sourcesForPrompt } from "./corpus";
+import { currentCycleStart, findCycleMentions, inForceDetermination } from "./scope";
 import type { ExtractedCorpus, StageContext } from "./types";
+
+export { currentCycleStart, findCycleMentions };
+export type { CycleMention } from "./scope";
 
 /**
  * Freshness = deterministic rules first, LLM assist second.
@@ -18,32 +22,6 @@ import type { ExtractedCorpus, StageContext } from "./types";
  */
 
 const DAY = 86_400_000;
-
-/** Indian academic / scholarship cycles start around June: Oct 2026 → 2026 (i.e. 2026-27). */
-export function currentCycleStart(now: Date): number {
-  return now.getUTCMonth() >= 5 ? now.getUTCFullYear() : now.getUTCFullYear() - 1;
-}
-
-export type CycleMention = { start: number; label: string; index: number; match: string; openEnded: boolean };
-
-export function findCycleMentions(text: string): CycleMention[] {
-  const re = /\b(20\d{2})\s?[-–—/]\s?(20\d{2}|\d{2})\b/g;
-  const out: CycleMention[] = [];
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(text))) {
-    const a = Number(m[1]);
-    const bRaw = m[2]!;
-    const b = bRaw.length === 2 ? Math.floor(a / 100) * 100 + Number(bRaw) : Number(bRaw);
-    if (b !== a + 1) continue;
-    // Skip ISO-like dates such as 2024-12-01 (handled as dates, not cycles).
-    if (/^\s?[-–/]\s?\d{1,2}\b/.test(text.slice(m.index + m[0].length, m.index + m[0].length + 4)) && bRaw.length === 2) continue;
-    // "2022-23 onwards" describes an open-ended rule that still applies, not a past cycle.
-    const openEnded = /^\W{0,3}(?:and\s+)?onwards?\b/i.test(text.slice(m.index + m[0].length, m.index + m[0].length + 16));
-    out.push({ start: a, label: `${a}-${String(b).slice(2)}`, index: m.index, match: m[0], openEnded });
-    if (out.length > 500) break;
-  }
-  return out;
-}
 
 /** The sentence/line around a position, as an exact substring of `text` (so it verifies as a quote). */
 export function sentenceAround(text: string, index: number, length: number, max = 260): string {
@@ -118,7 +96,7 @@ export function analyzeFreshnessRules(corpus: ExtractedCorpus, now: Date): Fresh
 
     // 3: academic year / cycle references
     const cycles = findCycleMentions(text);
-    if (cycles.length && !cycles.some((c) => c.openEnded && c.start <= cycleNow)) {
+    if (cycles.length && !inForceDetermination(text, cycleNow)) {
       const latest = cycles.reduce((a, b) => (b.start > a.start ? b : a));
       if (latest.start < cycleNow) {
         const behind = cycleNow - latest.start;
@@ -178,7 +156,7 @@ export function analyzeFreshnessRules(corpus: ExtractedCorpus, now: Date): Fresh
   return warnings;
 }
 
-export async function analyzeFreshness(corpus: ExtractedCorpus, ctx: StageContext): Promise<{ warnings: FreshnessWarning[]; aiUsed: boolean }> {
+export async function analyzeFreshness(corpus: ExtractedCorpus, ctx: StageContext): Promise<{ warnings: FreshnessWarning[]; aiUsed: boolean; aiSuppressed?: number }> {
   const now = ctx.now ?? new Date();
   const rules = analyzeFreshnessRules(corpus, now);
   if (!ctx.llm || corpus.claims.length === 0) return { warnings: rules, aiUsed: false };
@@ -195,23 +173,57 @@ export async function analyzeFreshness(corpus: ExtractedCorpus, ctx: StageContex
     { label: "Freshness analysis", signal: ctx.signal },
   );
   const have = new Set(rules.map((w) => `${w.sourceId}:${w.reason}`));
+  const cycleNow = currentCycleStart(now);
   const ai: FreshnessWarning[] = [];
+  let suppressed = 0;
   for (const w of out.warnings.slice(0, 20)) {
     const src = sa.resolve(w.sourceId);
-    const cited = ca.resolveMany(w.claimIds);
+    const cited = ca.resolveMany(w.claimIds).filter((c) => !src || c.sourceId === src.id);
     if (!src || cited.length === 0) continue;
     if (have.has(`${src.id}:${w.reason}`)) continue;
+    const g = reconcileAiFreshness(w.reason, w.severity, w.description, cited, src, cycleNow);
+    if (g === "suppress") {
+      suppressed++;
+      continue;
+    }
     have.add(`${src.id}:${w.reason}`);
     ai.push({
       id: randomUUID(),
       sourceId: src.id,
       reason: w.reason,
-      description: w.description.slice(0, 1000),
+      description: g.description.slice(0, 1000),
       sourceDate: [src.modifiedAt, src.publishedAt].filter((d): d is string => !!d).sort().pop() ?? null,
       evidence: evidenceFromClaims(cited).slice(0, 10),
-      severity: w.severity,
+      severity: g.severity,
       origin: "ai",
     });
   }
-  return { warnings: [...rules, ...ai], aiUsed: true };
+  return { warnings: [...rules, ...ai], aiUsed: true, aiSuppressed: suppressed };
+}
+
+const OPEN_WORDING_RE = /\b(?:onwards?|until\s+further\s+orders?|till\s+further\s+orders?|with\s+effect\s+from|w\.?\s?e\.?\s?f\.?|effective\s+from|from\s+(?:the\s+)?(?:academic|financial|fiscal)\s+year)\b/i;
+
+/**
+ * Keep AI freshness notes consistent with the rule engine. When the rules determined that a source is
+ * still in force ("2022-23 onwards", "until further orders"), an AI "past cycle / dated / old version"
+ * note that rests only on that open-ended wording is suppressed; one that rests on other claims is kept
+ * but downgraded to low severity and labelled as needing verification, with the reason.
+ */
+export function reconcileAiFreshness(
+  reason: FreshnessWarning["reason"],
+  severity: "high" | "medium" | "low",
+  description: string,
+  cited: Claim[],
+  source: Source,
+  cycleNow: number,
+): "suppress" | { severity: "high" | "medium" | "low"; description: string } {
+  if (!["references_past_cycle", "dated_old", "old_version"].includes(reason)) return { severity, description };
+  const inForce = inForceDetermination(source.contentText, cycleNow);
+  if (!inForce) return { severity, description };
+  const restsOnOpenWording = cited.every((c) => OPEN_WORDING_RE.test(`${c.quote} ${c.text}`) || findCycleMentions(c.quote).some((m) => m.openEnded));
+  if (restsOnOpenWording) return "suppress";
+  return {
+    severity: "low",
+    description: `Requires verification: ${description} (Note: the rule-based check found this source ${inForce}, so it is treated as current; this AI-assisted note may describe only part of it.)`,
+  };
 }

@@ -1,5 +1,6 @@
 import type { Claim, EvidenceRef, Source } from "@/server/ai/schemas";
 import { verifyQuoteInSource } from "./provenance";
+import { hasReliableDate, isOfficialSource } from "./scope";
 
 /**
  * Short aliases for prompts (S1, C1, F1). Models copy short ids far more reliably than UUIDs and they
@@ -65,6 +66,8 @@ export function sourcesForPrompt(sources: Source[], aliases: AliasMap<Source>) {
       file: s.fileName,
       published: s.publishedAt ? s.publishedAt.slice(0, 10) : null,
       updated: s.modifiedAt ? s.modifiedAt.slice(0, 10) : null,
+      official: isOfficialSource(s),
+      reliableDate: hasReliableDate(s),
     })),
   );
 }

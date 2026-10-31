@@ -109,19 +109,34 @@ export async function runAnalysisStage(repos: Repositories, sessionId: string, s
       const r = await detectGaps(corpus, ctx);
       const gapById = new Map(r.gaps.map((g) => [g.id, g]));
       await repos.findings.replaceType(sessionId, "gap", r.coverage.map((t) => topicToRow(sessionId, t, gapById.get(t.id) ?? null)));
-      return { topics: r.coverage.length, gaps: r.gaps.length, covered: r.coverage.filter((t) => t.status === "covered").length };
+      return {
+        topics: r.coverage.length,
+        gaps: r.gaps.length,
+        covered: r.coverage.filter((t) => t.status === "covered").length,
+        partial: r.coverage.filter((t) => t.status === "partial").length,
+        missing: r.coverage.filter((t) => t.status === "missing").length,
+        askedScope: r.askedScope ?? null,
+        downgraded: r.coverage.filter((t) => t.verification === "scope_mismatch" || t.verification === "aggregator_only").length,
+        topicPlanning: r.planning ? (r.planning.aiUsed ? "checklist+ai" : "checklist") : undefined,
+      };
     }
     case "contradictions": {
       const decoded = decodeFindings(await repos.findings.listBySession(sessionId, "gap"));
       if (decoded.coverage.length === 0) throw new ApiError(409, "bad_request", "Run gap detection first (contradictions are compared topic by topic).");
       const r = await detectContradictions({ ...corpus, coverage: decoded.coverage }, ctx);
       await repos.findings.replaceType(sessionId, "contradiction", r.contradictions.map((c) => contradictionToRow(sessionId, c)));
-      return { contradictions: r.contradictions.length, groupsCompared: r.groupsCompared, pairsCompared: r.pairsCompared };
+      return {
+        contradictions: r.contradictions.filter((c) => c.kind !== "cycle_mismatch").length,
+        cycleMismatches: r.contradictions.filter((c) => c.kind === "cycle_mismatch").length,
+        groupsCompared: r.groupsCompared,
+        pairsCompared: r.pairsCompared,
+        valueDifferences: r.valueDifferences,
+      };
     }
     case "freshness": {
       const r = await analyzeFreshness(corpus, ctx);
       await repos.findings.replaceType(sessionId, "freshness", r.warnings.map((w) => freshnessToRow(sessionId, w)));
-      return { warnings: r.warnings.length, aiUsed: r.aiUsed };
+      return { warnings: r.warnings.length, aiUsed: r.aiUsed, aiSuppressed: r.aiSuppressed ?? 0 };
     }
     case "questions": {
       const decoded = decodeFindings(await repos.findings.listBySession(sessionId));

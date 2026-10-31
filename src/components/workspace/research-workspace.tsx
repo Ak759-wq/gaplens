@@ -17,6 +17,7 @@ import { MAX_SOURCES, researchBriefSchema } from "@/lib/validation";
 import { PdfDropzone } from "./pdf-dropzone";
 import { SourceTable } from "./source-table";
 import { UrlInput } from "./url-input";
+import { EXAMPLE_BRIEF, EXAMPLE_URLS } from "./example";
 import { newId, type Brief, type ClientIntegrationStatus, type DraftSource } from "./types";
 
 const DRAFT_KEY = "gaplens:workspace-draft:v1";
@@ -43,6 +44,7 @@ export function ResearchWorkspace({ integrations }: { integrations: ClientIntegr
   const [hydrated, setHydrated] = useState(false);
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [exampleLoaded, setExampleLoaded] = useState(false);
   const router = useRouter();
   const byo = useByoSettings();
 
@@ -85,6 +87,22 @@ export function ResearchWorkspace({ integrations }: { integrations: ClientIntegr
   ];
   const canAnalyse = readiness.every((r) => r.ok) && !submitting;
   const blockers = readiness.filter((r) => !r.ok).map((r) => r.label);
+
+  /** Replace the brief and URL sources with the CSSS sample (uploaded PDFs are kept). */
+  function loadExample() {
+    const hasWork = brief.topic || brief.question || sources.some((s) => s.kind === "url");
+    if (hasWork && !window.confirm("Replace the current brief and URLs with the CSSS sample?")) return;
+    setBrief({ ...EXAMPLE_BRIEF });
+    setTouched({});
+    const now = new Date().toISOString();
+    const urlSources: DraftSource[] = [];
+    for (const u of EXAMPLE_URLS) {
+      const r = checkUrl(u);
+      if (r.ok) urlSources.push({ id: newId(), kind: "url", url: r.normalized, dedupKey: urlDedupKey(r.url), addedAt: now });
+    }
+    setSources((prev) => [...prev.filter((s) => s.kind === "pdf"), ...urlSources].slice(0, MAX_SOURCES));
+    setExampleLoaded(true);
+  }
 
   async function analyse() {
     if (!briefResult.success) return;
@@ -154,8 +172,20 @@ export function ResearchWorkspace({ integrations }: { integrations: ClientIntegr
       <div className="min-w-0 space-y-8">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Research brief</CardTitle>
-            <CardDescription>What are you trying to find out, and what decision does it support?</CardDescription>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="space-y-1.5">
+                <CardTitle className="text-base">Research brief</CardTitle>
+                <CardDescription>What are you trying to find out, and what decision does it support?</CardDescription>
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={loadExample} title="Pre-fill a sample brief about the Central Sector Scheme of Scholarship with 5 real public sources">
+                <Sparkles className="size-4" aria-hidden="true" /> Load example
+              </Button>
+            </div>
+            {exampleLoaded && (
+              <p className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-900">
+                Sample loaded: a CSSS scholarship brief with 5 real public sources (NSP guidelines, a CBSE notice, The Hindu, a third-party aggregator and the NSP announcements page). Nothing is pre-analysed; edit anything before you run it.
+              </p>
+            )}
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="space-y-2">

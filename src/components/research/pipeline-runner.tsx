@@ -150,8 +150,8 @@ export function PipelineRunner({
           set(key, e instanceof ApiClientError && e.code === "config_required" ? "config" : "failed", e instanceof Error ? e.message : "Failed");
         }
       };
-      await stage("gaps", (r) => `${r.topics} topics, ${r.gaps} gaps`);
-      await stage("contradictions", (r) => `${r.contradictions} found (${r.pairsCompared} cross-source pairs compared)`);
+      await stage("gaps", (r) => `${r.topics} topics: ${r.covered} covered, ${r.partial ?? 0} partial, ${r.missing ?? 0} not found${r.askedScope ? ` (checked for ${r.askedScope})` : ""}`);
+      await stage("contradictions", (r) => `${r.contradictions} found${r.cycleMismatches ? `, ${r.cycleMismatches} cycle mismatch(es)` : ""} (${r.pairsCompared} cross-source pairs compared)`);
       await stage("freshness", (r) => `${r.warnings} warnings${r.aiUsed ? "" : " (rules only)"}`);
       await stage("questions", (r) => `${r.questions} questions`);
       await stage("checklist", (r) => `${r.items} items`);

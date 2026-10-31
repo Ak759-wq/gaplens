@@ -3,8 +3,6 @@ import type { Claim, Source, TopicCoverage } from "@/server/ai/schemas";
 import { chunkText, verifyModelQuote } from "./claimExtractor";
 import { authorityNote, buildContradictionCandidates } from "./contradictionDetector";
 import { analyzeFreshnessRules, currentCycleStart, findCycleMentions, sentenceAround } from "./freshnessAnalyzer";
-import { normalizeTopics } from "./gapDetector";
-import { AliasMap } from "./corpus";
 
 const NOW = new Date("2026-10-31T00:00:00Z");
 const src = (id: string, o: Partial<Source> = {}): Source => ({
@@ -74,24 +72,6 @@ describe("contradiction pairing", () => {
     expect(note).toMatch(/scholarships\.gov\.in is an official/);
     expect(note).toMatch(/most recent date \(2026-06-01\)/);
     expect(note).toMatch(/does not decide which source is correct/);
-  });
-});
-
-describe("gap normalisation", () => {
-  const ca = new AliasMap([claim("x1", "A"), claim("x2", "B")], "C");
-  it("downgrades 'covered' without valid evidence and upgrades 'missing' with evidence", () => {
-    const r = normalizeTopics(
-      [
-        { key: "Deadline", label: "Deadline", whyItMatters: "w", status: "covered", claimIds: ["C99"], severity: "high" },
-        { key: "amount", label: "Amount", whyItMatters: "w", status: "missing", claimIds: ["C1"], severity: "medium" },
-        { key: "income", label: "Income", whyItMatters: "w", status: "covered", claimIds: ["C2"], severity: "low" },
-      ],
-      ca,
-    );
-    expect(r.coverage.map((t) => [t.key, t.status])).toEqual([["deadline", "missing"], ["amount", "partial"], ["income", "covered"]]);
-    expect(r.gaps.map((g) => g.label)).toEqual(["not_found_in_sources", "potential_gap"]);
-    expect(r.gaps[0]!.description).toMatch(/Not found in the reviewed sources/);
-    expect(r.gaps[1]!.evidence[0]!.claimId).toBe("x1");
   });
 });
 

@@ -23,7 +23,9 @@ const fx = (n: string) => readFileSync(join(process.cwd(), "tests/fixtures", n),
 function block(messages: ChatMessage[], label: string): unknown {
   const text = messages.at(-1)!.content;
   const i = text.lastIndexOf(`${label}:\n`);
-  return JSON.parse(text.slice(i + label.length + 2).trim());
+  const rest = text.slice(i + label.length + 2);
+  const end = rest.search(/\n\n[A-Z][A-Z ]+:\n/);
+  return JSON.parse((end === -1 ? rest : rest.slice(0, end)).trim());
 }
 type C = { id: string; quote: string };
 const idOf = (claims: C[], needle: string) => claims.find((c) => c.quote.includes(needle))?.id ?? "C999";
@@ -52,13 +54,17 @@ function mockLlm(): LlmClient & { calls: string[] } {
                 { text: "Opens in July.", quote: "Applications usually open in July every year on the national portal", category: "date_deadline" },
               ] };
           break;
+        case "Topic planning":
+          expect(prompt).not.toContain("CLAIMS");
+          out = { topics: [] };
+          break;
         case "Gap detection": {
           const claims = block(messages, "CLAIMS") as C[];
-          out = { topics: [
-            { key: "amount", label: "Scholarship amount", whyItMatters: "Budgeting", status: "covered", claimIds: [idOf(claims, "13,500"), idOf(claims, "20,000")], severity: "high" },
-            { key: "income_criteria", label: "Income criteria", whyItMatters: "Eligibility", status: "covered", claimIds: [idOf(claims, "2,50,000")], severity: "high" },
-            { key: "renewal", label: "Renewal conditions", whyItMatters: "Continuity", status: "missing", claimIds: [], missingInformation: "Renewal criteria", whatToInvestigate: "Official guidelines", severity: "medium" },
-            { key: "deadline", label: "Deadline", whyItMatters: "Timing", status: "partial", claimIds: [idOf(claims, "31 October 2024")], missingInformation: "Current-cycle deadline", severity: "high" },
+          out = { assessments: [
+            { key: "amount", status: "covered", claimIds: [idOf(claims, "13,500"), idOf(claims, "20,000")] },
+            { key: "income_limit", status: "covered", claimIds: [idOf(claims, "2,50,000")] },
+            { key: "renewal_conditions", status: "missing", claimIds: [], missingInformation: "Renewal criteria", whatToInvestigate: "Official guidelines" },
+            { key: "application_deadline", status: "partial", claimIds: [idOf(claims, "31 October 2024")], missingInformation: "Current-cycle deadline" },
           ] };
           break;
         }
@@ -136,7 +142,7 @@ describe("GapLens pipeline (mocked LLM, in-memory DB)", () => {
       expect(verifyQuoteInSource(c.quote, texts.get(c.source_id)!).verified).toBe(true);
     }
 
-    expect(await runAnalysisStage(repos, session.id, "gaps", llm, NOW)).toMatchObject({ topics: 4, gaps: 2, covered: 2 });
+    expect(await runAnalysisStage(repos, session.id, "gaps", llm, NOW)).toMatchObject({ topics: 12, gaps: 12, covered: 0, partial: 3, missing: 9, askedScope: "2026-27", downgraded: 2, topicPlanning: "checklist+ai" });
     expect(await runAnalysisStage(repos, session.id, "contradictions", llm, NOW)).toMatchObject({ contradictions: 1 });
     const fresh = await runAnalysisStage(repos, session.id, "freshness", llm, NOW);
     expect(fresh).toMatchObject({ aiUsed: true });
@@ -148,7 +154,10 @@ describe("GapLens pipeline (mocked LLM, in-memory DB)", () => {
     expect(view.session.status).toBe("complete");
     expect(view.sources.map((s) => s.title)).toEqual(["Post Matric Scholarship for SC Students", "Top 10 Scholarships for Engineering Students"]);
     expect(view.sources[1]!.publishedAt).toBeNull(); // undated stays undated
-    expect(view.coverage.map((t) => t.status)).toEqual(["covered", "covered", "missing", "partial"]);
+    // "current cycle" = 2026-27: the gov page is a 2024-25 page and the blog is undated, so nothing is "covered".
+    const status = Object.fromEntries(view.coverage.map((t) => [t.key, [t.status, t.verification ?? null]]));
+    expect(status).toMatchObject({ amount: ["partial", "scope_mismatch"], income_limit: ["partial", "scope_mismatch"], application_deadline: ["partial", "model_assessment"], renewal_conditions: ["missing", null] });
+    expect(view.gaps.find((g) => g.topicKey === "amount")!.evidence).toHaveLength(2);
     expect(view.contradictions).toHaveLength(1);
     const c = view.contradictions[0]!;
     expect(new Set(c.positions.flatMap((p) => p.evidence.map((e) => e.sourceId))).size).toBe(2);
@@ -169,7 +178,7 @@ describe("GapLens pipeline (mocked LLM, in-memory DB)", () => {
     }
     expect(md).toContain("discarded because their quote could not be found verbatim");
     expect(md).not.toContain("renewed automatically");
-    expect(llm.calls).toEqual(["Claim extraction", "Claim extraction", "Gap detection", "Contradiction detection", "Freshness analysis", "Question generation", "Checklist generation"]);
+    expect(llm.calls).toEqual(["Claim extraction", "Claim extraction", "Topic planning", "Gap detection", "Contradiction detection", "Freshness analysis", "Question generation", "Checklist generation"]);
   });
 
   it("refuses to analyse when no source could be read", async () => {

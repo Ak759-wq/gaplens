@@ -20,17 +20,29 @@ export const claimsLlmSchema = z.object({
   ),
 });
 
-export const topicsLlmSchema = z.object({
+/** Topic planning: sees ONLY the research brief (never the claims), so topics are not circular. */
+export const topicPlanLlmSchema = z.object({
   topics: z.array(
     z.object({
       key: z.string().min(1),
       label: z.string().min(1),
       whyItMatters: z.string(),
+      severity: severitySchema,
+      /** True when the answer changes per cycle/year (deadlines, timelines, notified rates). */
+      timeSensitive: z.boolean(),
+    }),
+  ),
+});
+
+/** Coverage assessment of the planned topics against verified claims. */
+export const coverageLlmSchema = z.object({
+  assessments: z.array(
+    z.object({
+      key: z.string().min(1),
       status: z.enum(["covered", "partial", "missing"]),
       claimIds: z.array(z.string()),
       missingInformation: z.string().optional(),
       whatToInvestigate: z.string().optional(),
-      severity: severitySchema,
     }),
   ),
 });
@@ -44,6 +56,8 @@ export const contradictionsLlmSchema = z.object({
       severity: severitySchema,
       positions: z.array(z.object({ statement: z.string().min(1), claimIds: z.array(z.string()) })),
       possibleExplanations: z.array(z.string()).optional(),
+      /** Do the positions refer to the same cycle/year? "different" = cycle mismatch, not a contradiction. */
+      cycleRelation: z.enum(["same", "different", "unclear"]).optional(),
     }),
   ),
 });
