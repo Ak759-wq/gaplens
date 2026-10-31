@@ -2,6 +2,7 @@ export * from "./errors";
 export * from "./types";
 export * from "./findings";
 export * from "./provenance";
+export * from "./corpus";
 export * from "./sourceExtractor";
 export * from "./claimExtractor";
 export * from "./gapDetector";

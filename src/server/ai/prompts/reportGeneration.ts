@@ -2,7 +2,11 @@ import { PROVENANCE_RULES, briefBlock, type BriefInput } from "./shared";
 
 export const REPORT_GENERATION_VERSION = "report-v0";
 
-/** Produces only the neutral coverage overview; all other report sections are assembled deterministically. */
+/**
+ * Optional: neutral coverage overview via the model. The default report path builds the overview
+ * deterministically from counts (fewer calls on free-tier rate limits); this prompt is kept for
+ * deployments that want model-written prose.
+ */
 export function buildCoverageOverviewPrompt(brief: BriefInput, statsJson: string) {
   return [
     { role: "system" as const, content: PROVENANCE_RULES },

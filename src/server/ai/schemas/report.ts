@@ -7,6 +7,7 @@ import {
   freshnessWarningSchema,
   gapSchema,
   questionSchema,
+  topicCoverageSchema,
 } from "./findings";
 import { sourceSchema } from "./source";
 
@@ -25,5 +26,7 @@ export const reportSchema = z.object({
   freshnessWarnings: z.array(freshnessWarningSchema),
   questions: z.array(questionSchema),
   checklist: z.array(checklistItemSchema),
+  coverage: z.array(topicCoverageSchema).optional(),
+  limitations: z.array(z.string()).optional(),
 });
 export type Report = z.infer<typeof reportSchema>;

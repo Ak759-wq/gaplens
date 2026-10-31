@@ -8,7 +8,8 @@ export const isoDateSchema = z
 
 /** A pointer from a finding back to the claims (and therefore sources + quotes) that support it. */
 export const evidenceRefSchema = z.object({
-  claimId: idSchema,
+  /** Claim the quote belongs to. Null for rule-based evidence taken straight from source text. */
+  claimId: idSchema.nullable().optional(),
   sourceId: idSchema,
   /** Exact quote copied from the source text. Verified against stored content before display. */
   quote: z.string().min(1).max(2000),

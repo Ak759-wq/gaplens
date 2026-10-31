@@ -17,6 +17,12 @@ export const sourceSchema = z
     retrievedAt: isoDateSchema.nullable(),
     extractionStatus: extractionStatusSchema,
     contentText: z.string().nullable(),
+    /** Update date stated by the source (meta dateModified / "Last updated"), if any. */
+    modifiedAt: isoDateSchema.nullable().optional(),
+    /** Where each date came from, e.g. 'meta article:modified_time'. */
+    dateEvidence: z.array(z.string()).optional(),
+    provider: z.string().nullable().optional(),
+    extractionError: z.string().nullable().optional(),
   })
   .refine((s) => (s.sourceType === "url" ? s.url !== null : s.fileName !== null), {
     message: "URL sources need a url; PDF sources need a fileName",

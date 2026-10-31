@@ -22,6 +22,9 @@ export const claimSchema = z.object({
   category: claimCategorySchema,
   /** Date the claim refers to (e.g. a deadline), if any. */
   date: isoDateSchema.optional(),
+  /** Offsets of the verified quote in the stored source text (for highlighting). */
+  charStart: z.number().int().nonnegative().optional(),
+  charEnd: z.number().int().positive().optional(),
 });
 export type Claim = z.infer<typeof claimSchema>;
 

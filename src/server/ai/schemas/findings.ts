@@ -15,6 +15,9 @@ export const gapSchema = z.object({
   /** Related claims that frame the gap (may be empty when nothing related was found). */
   evidence: z.array(evidenceRefSchema).max(20),
   label: z.enum(["potential_gap", "not_found_in_sources"]),
+  topicKey: z.string().max(80).optional(),
+  whyItMatters: z.string().max(1000).optional(),
+  whatToInvestigate: z.string().max(1000).optional(),
 });
 export type Gap = z.infer<typeof gapSchema>;
 
@@ -30,6 +33,12 @@ export const contradictionSchema = z.object({
   severity: severitySchema,
   /** Possible benign explanations (different editions, regions, cycles). Optional. */
   possibleExplanations: z.array(z.string().max(500)).max(5).default([]),
+  topicKey: z.string().max(80).optional(),
+  /**
+   * Evidence-based note on relative authority (official domain, newer stated date). Deterministic,
+   * never a verdict: GapLens does not declare a winner.
+   */
+  authorityNote: z.string().max(600).nullable().optional(),
 });
 export type Contradiction = z.infer<typeof contradictionSchema>;
 
@@ -37,10 +46,13 @@ export type Contradiction = z.infer<typeof contradictionSchema>;
 export const freshnessWarningSchema = z.object({
   id: idSchema,
   sourceId: idSchema,
-  reason: z.enum(["dated_old", "references_past_cycle", "undated", "superseded_by_newer_source"]),
+  reason: z.enum(["dated_old", "references_past_cycle", "undated", "superseded_by_newer_source", "expired_deadline", "old_version"]),
   description: z.string().min(1).max(1000),
   sourceDate: isoDateSchema.nullable(),
   evidence: z.array(evidenceRefSchema).max(10),
+  severity: severitySchema.optional(),
+  /** "rule" = deterministic date/cycle check; "ai" = model-assisted interpretation of verified quotes. */
+  origin: z.enum(["rule", "ai"]).optional(),
 });
 export type FreshnessWarning = z.infer<typeof freshnessWarningSchema>;
 
@@ -51,6 +63,8 @@ export const questionSchema = z.object({
   /** Findings (gaps/contradictions/freshness) that raised this question. */
   relatedFindingIds: z.array(idSchema).max(20),
   suggestedSourceType: z.string().max(200).optional(),
+  /** What raised it. Questions are AI suggestions, distinct from gaps (confirmed not found in sources). */
+  basis: z.enum(["gap", "contradiction", "freshness", "ambiguity"]).optional(),
 });
 export type Question = z.infer<typeof questionSchema>;
 
@@ -60,5 +74,18 @@ export const checklistItemSchema = z.object({
   priority: severitySchema,
   rationale: z.string().min(1).max(1000),
   findingIds: z.array(idSchema).min(1).max(20),
+  done: z.boolean().optional(),
 });
+
+/** Coverage of one information topic the research question requires. */
+export const topicCoverageSchema = z.object({
+  id: idSchema,
+  key: z.string().min(1).max(80),
+  label: z.string().min(1).max(200),
+  whyItMatters: z.string().max(1000),
+  status: z.enum(["covered", "partial", "missing"]),
+  claimIds: z.array(idSchema),
+  sourceIds: z.array(idSchema),
+});
+export type TopicCoverage = z.infer<typeof topicCoverageSchema>;
 export type ChecklistItem = z.infer<typeof checklistItemSchema>;

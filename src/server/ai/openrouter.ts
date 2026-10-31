@@ -16,6 +16,10 @@ export type OpenRouterOptions = {
   baseDelayMs?: number;
   signal?: AbortSignal;
   fetchImpl?: typeof fetch;
+  /** Explicit key (BYO or resolved by llm.ts). Falls back to OPENROUTER_API_KEY. */
+  apiKey?: string;
+  /** Cap on a single Retry-After wait; longer waits surface as a rate_limited error instead. */
+  maxWaitMs?: number;
 };
 
 export function getOpenRouterConfig(env: NodeJS.ProcessEnv = process.env) {
@@ -47,7 +51,9 @@ export async function chatCompletion(
   messages: ChatMessage[],
   opts: OpenRouterOptions & { jsonMode?: boolean } = {},
 ): Promise<string> {
-  const cfg = getOpenRouterConfig();
+  const cfg = opts.apiKey
+    ? { apiKey: opts.apiKey, model: process.env.OPENROUTER_MODEL?.trim() || DEFAULT_OPENROUTER_MODEL, siteUrl: process.env.NEXT_PUBLIC_SITE_URL?.trim() || "http://localhost:3000" }
+    : getOpenRouterConfig();
   const fetchImpl = opts.fetchImpl ?? fetch;
   const maxRetries = opts.maxRetries ?? 4;
   const base = opts.baseDelayMs ?? 800;
@@ -92,11 +98,17 @@ export async function chatCompletion(
     }
 
     if (RETRYABLE.has(res.status) && attempt < maxRetries) {
-      await sleep(retryDelay(attempt, base, res.headers.get("retry-after")));
-      continue;
+      const wait = retryDelay(attempt, base, res.headers.get("retry-after"));
+      if (wait <= (opts.maxWaitMs ?? 30_000)) {
+        await sleep(wait);
+        continue;
+      }
     }
     const detail = await res.text().catch(() => "");
-    throw new AIProviderError(`OpenRouter error ${res.status}: ${detail.slice(0, 500)}`, res.status);
+    const ra = Number(res.headers.get("retry-after"));
+    throw new AIProviderError(`OpenRouter error ${res.status}: ${detail.slice(0, 300)}`, res.status, {
+      retryAfterSec: Number.isFinite(ra) && ra > 0 ? ra : undefined,
+    });
   }
 }
 
@@ -110,7 +122,7 @@ export function extractJson(text: string): unknown {
     const start = candidate.indexOf("{");
     const end = candidate.lastIndexOf("}");
     if (start !== -1 && end > start) return JSON.parse(candidate.slice(start, end + 1));
-    throw new AIProviderError("Model output was not valid JSON.");
+    throw new AIProviderError("Model output was not valid JSON.", undefined, { code: "invalid_output" });
   }
 }
 
@@ -137,5 +149,5 @@ export async function structuredCompletion<T extends z.ZodTypeAny>(
       },
     ];
   }
-  throw new AIProviderError("Model output failed schema validation twice.");
+  throw new AIProviderError("Model output failed schema validation twice.", undefined, { code: "invalid_output" });
 }
