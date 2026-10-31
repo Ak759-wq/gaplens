@@ -21,7 +21,7 @@ export function ResearchDashboard({ view, onToggleChecklist }: { view: SessionVi
   return (
     <Tabs value={tab} onValueChange={setTab} className="gap-6">
       <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0 print:hidden">
-        <TabsList className="h-auto gap-1 rounded-lg border bg-muted/60 p-1" aria-label="Report sections">
+        <TabsList className="h-auto gap-1 rounded-xl border border-border bg-white/80 p-1 shadow-sm" aria-label="Report sections">
           {DASHBOARD_TABS.map((t) => (
             <TabsTrigger key={t.value} value={t.value}>
               <t.icon aria-hidden="true" />

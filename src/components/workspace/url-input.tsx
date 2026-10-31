@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
-import { Plus } from "lucide-react";
+import { Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,7 +53,7 @@ export function UrlInput({
 
   return (
     <div className="space-y-2">
-      <Label htmlFor={id}>Source URLs</Label>
+      <Label htmlFor={id} className="text-[#202322]">Add a source URL</Label>
       <div className="flex gap-2">
         <Input
           id={id}
@@ -74,11 +74,11 @@ export function UrlInput({
           aria-invalid={errors.length > 0 || undefined}
           aria-describedby={`${id}-help ${errors.length ? `${id}-err` : ""}`}
         />
-        <Button type="button" variant="outline" onClick={submit} disabled={disabled}>
-          <Plus /> Add
+        <Button type="button" variant="default" className="shrink-0 bg-[#202322] text-white hover:bg-[#2f3431]" onClick={submit} disabled={disabled}>
+          <Link2 /> Add source
         </Button>
       </div>
-      <p id={`${id}-help`} className="text-xs text-muted-foreground">
+      <p id={`${id}-help`} className="text-xs text-[#6b706f]">
         Public http(s) pages only. Local, private-network and credentialed URLs are rejected.
       </p>
       {errors.length > 0 && (

@@ -44,7 +44,7 @@ export function PdfDropzone({
 
   return (
     <div className="space-y-2">
-      <span className="text-sm font-medium" id={`${id}-label`}>PDF documents</span>
+      <span className="text-sm font-medium text-[#202322]" id={`${id}-label`}>Add PDF documents</span>
       <label
         htmlFor={id}
         onDragOver={(e) => {
@@ -58,17 +58,17 @@ export function PdfDropzone({
           if (!disabled) handle(e.dataTransfer.files);
         }}
         className={cn(
-          "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed bg-card px-4 py-8 text-center transition-colors",
-          "focus-within:ring-[3px] focus-within:ring-ring/30 hover:bg-muted/40",
-          dragging && "border-brand bg-brand-soft",
+          "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-[#cfd1ca] bg-[#faf9f6] px-4 py-7 text-center transition-colors",
+          "focus-within:ring-[3px] focus-within:ring-[#536d53]/20 hover:bg-[#f4f4f0]",
+          dragging && "border-[#536d53] bg-[#eaf0e6]",
           disabled && "pointer-events-none opacity-50",
         )}
       >
-        <UploadCloud className="size-6 text-muted-foreground" aria-hidden="true" />
+        <UploadCloud className="size-6 text-[#6b706f]" aria-hidden="true" />
         <span className="text-sm">
-          <span className="font-medium text-brand">Choose PDFs</span> or drag them here
+          <span className="font-medium text-[#202322]">Choose PDFs</span> or drag them here
         </span>
-        <span className="text-xs text-muted-foreground">PDF only, up to {Math.round(MAX_PDF_BYTES / 1024 / 1024)} MB each</span>
+        <span className="text-xs text-[#6b706f]">PDF only, up to {Math.round(MAX_PDF_BYTES / 1024 / 1024)} MB each</span>
         <input
           ref={inputRef}
           id={id}
