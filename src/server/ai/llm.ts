@@ -31,6 +31,7 @@ export function defaultModel(provider: LlmProvider, env: NodeJS.ProcessEnv = pro
 
 export function resolveServerProvider(env: NodeJS.ProcessEnv = process.env): LlmProvider | null {
   const pref = env.LLM_PROVIDER?.trim().toLowerCase();
+  if (pref && pref !== "auto" && pref !== "gemini" && pref !== "openrouter") return null;
   if (pref === "gemini" && has(env.GEMINI_API_KEY)) return "gemini";
   if (pref === "openrouter" && has(env.OPENROUTER_API_KEY)) return "openrouter";
   if (has(env.GEMINI_API_KEY)) return "gemini";

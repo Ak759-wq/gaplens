@@ -2,12 +2,14 @@ import type { Metadata } from "next";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { ResearchWorkspace } from "@/components/workspace/research-workspace";
 import { getIntegrationStatus } from "@/lib/env";
+import { getIntegrationHealth } from "@/server/integrations/health";
 
 export const metadata: Metadata = { title: "Research workspace" };
 export const dynamic = "force-dynamic";
 
-export default function WorkspacePage() {
+export default async function WorkspacePage() {
   const s = getIntegrationStatus();
+  const health = await getIntegrationHealth();
   return (
     <>
       <PageHeader
@@ -17,11 +19,12 @@ export default function WorkspacePage() {
       />
       <ResearchWorkspace
         integrations={{
-          llm: { activeProvider: s.llm.activeProvider, geminiModel: s.llm.gemini.model, openrouterModel: s.llm.openrouter.model },
+          llm: { activeProvider: s.llm.activeProvider, geminiModel: s.llm.gemini.model, openrouterModel: s.llm.openrouter.model, verified: health.llm.verified, error: health.llm.error },
           supabase: s.supabase.configured,
+          supabaseVerified: health.supabase.verified,
           firecrawl: s.firecrawl.configured,
           search: s.search.configured,
-          pipelineReady: s.pipelineReady,
+          pipelineReady: health.pipelineReady,
         }}
       />
     </>

@@ -36,8 +36,9 @@ export function getIntegrationStatus(env: NodeJS.ProcessEnv = process.env): Inte
   const gemini = has(env.GEMINI_API_KEY);
   const openrouter = has(env.OPENROUTER_API_KEY);
   const pref = env.LLM_PROVIDER?.trim().toLowerCase() || "auto";
+  const validPreference = pref === "auto" || pref === "gemini" || pref === "openrouter";
   const activeProvider =
-    pref === "gemini" && gemini ? "gemini" : pref === "openrouter" && openrouter ? "openrouter" : gemini ? "gemini" : openrouter ? "openrouter" : null;
+    !validPreference ? null : pref === "gemini" && gemini ? "gemini" : pref === "openrouter" && openrouter ? "openrouter" : gemini ? "gemini" : openrouter ? "openrouter" : null;
   const openrouterStatus = { configured: openrouter, model: env.OPENROUTER_MODEL?.trim() || DEFAULT_OPENROUTER_MODEL };
   return {
     llm: {

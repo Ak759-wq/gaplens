@@ -30,7 +30,7 @@ export function HistoryList({ items: initial }: { items: HistoryItem[] }) {
         {items.map((s) => {
           const st = STATUS[s.status] ?? STATUS.draft!;
           return (
-            <li key={s.id} className="group flex items-center gap-3 rounded-xl border bg-card p-4 shadow-xs transition hover:border-brand/40">
+            <li key={s.id} className="group flex items-center gap-3 rounded-xl border border-border bg-card p-4 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.28)] transition hover:border-brand/40 hover:shadow-[0_20px_50px_-28px_rgba(104,66,232,0.24)]">
               <Link href={`/research/${s.id}`} className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="truncate font-medium">{s.topic}</h2>

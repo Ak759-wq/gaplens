@@ -5,6 +5,7 @@ import { ApiError } from "@/server/api/http";
 import type { Repositories } from "@/server/db/repositories";
 import type { ResearchSessionRow, SourceMetadata, SourceRow } from "@/server/db/types";
 import { ExtractionError, extractPdfUpload, extractUrl, type ExtractDeps, type ExtractedDocument } from "@/server/services/sourceExtractor";
+import { checkUrl, urlDedupKey } from "@/lib/url-safety";
 
 export async function requireSession(repos: Repositories, id: string): Promise<ResearchSessionRow> {
   const s = await repos.sessions.get(id);
@@ -50,8 +51,11 @@ async function assertRoom(repos: Repositories, sessionId: string, adding: number
 
 export async function addUrlSources(repos: Repositories, sessionId: string, urls: string[]) {
   const existing = await assertRoom(repos, sessionId, urls.length);
-  const have = new Set(existing.map((s) => s.url).filter(Boolean));
-  const fresh = [...new Set(urls)].filter((u) => !have.has(u));
+  const have = new Set(existing.map((s) => (s.url ? checkUrl(s.url) : null)).filter((r): r is Extract<ReturnType<typeof checkUrl>, { ok: true }> => Boolean(r?.ok)).map((r) => urlDedupKey(r.url)));
+  const fresh = [...new Set(urls)].filter((u) => {
+    const checked = checkUrl(u);
+    return checked.ok && !have.has(urlDedupKey(checked.url));
+  });
   return repos.sources.addMany(fresh.map((url) => blankSource(sessionId, "url", { url })));
 }
 
@@ -84,11 +88,17 @@ function docToPatch(doc: ExtractedDocument, extra: Partial<SourceMetadata> = {})
 /** Upload + extract a PDF in one request (the file itself is not stored, only its text). */
 export async function addPdfSource(repos: Repositories, sessionId: string, file: { name: string; bytes: Uint8Array }): Promise<SourceRow> {
   await assertRoom(repos, sessionId, 1);
-  const [row] = await repos.sources.addMany([blankSource(sessionId, "pdf", { fileName: file.name.slice(0, 255) })]);
   try {
     const doc = await extractPdfUpload(file.bytes);
+    const existing = await repos.sources.listBySession(sessionId);
+    if (existing.some((source) => source.content_sha256 && source.content_sha256 === doc.contentSha256)) {
+      throw new ApiError(400, "bad_request", "This PDF has already been added to the session.");
+    }
+    const [row] = await repos.sources.addMany([blankSource(sessionId, "pdf", { fileName: file.name.slice(0, 255) })]);
     return await repos.sources.update(row!.id, docToPatch(doc, { sizeBytes: file.bytes.byteLength }));
   } catch (e) {
+    if (e instanceof ApiError) throw e;
+    const [row] = await repos.sources.addMany([blankSource(sessionId, "pdf", { fileName: file.name.slice(0, 255) })]);
     const message = e instanceof ExtractionError ? e.message : "Could not read this PDF.";
     return repos.sources.update(row!.id, { extraction_status: "failed", extraction_error: message, retrieved_at: new Date().toISOString() });
   }

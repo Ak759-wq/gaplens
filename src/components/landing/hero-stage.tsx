@@ -1,221 +1,121 @@
-"use client";
+/** Weighted toward binary, with a few hex glyphs so it reads as data, not prose. */
+const DIGITS = "00000011111188889999ABCDEF";
 
-import { useEffect, useRef, useState } from "react";
-import dynamic from "next/dynamic";
-import Image from "next/image";
-import { cn } from "@/lib/utils";
-import type { HeroMotion } from "./hero-starfield";
-
-// three.js + R3F live only in this chunk, fetched after first paint.
-const HeroStarfield = dynamic(() => import("./hero-starfield"), { ssr: false, loading: () => null });
-
-/** Deterministic static star layer (first paint, reduced motion, no WebGL). */
-function staticStars(count: number, seed: number, w: number, h: number): string {
-  let s = seed;
-  const rnd = () => ((s = (s * 16807) % 2147483647) - 1) / 2147483646;
-  const out: string[] = [];
-  for (let n = 0; n < count; n++) {
-    const a = 0.25 + rnd() * 0.65;
-    out.push(`${Math.round(rnd() * w)}px ${Math.round(rnd() * h)}px 0 ${rnd() > 0.92 ? 0.6 : 0}px rgba(235,232,255,${a.toFixed(2)})`);
-  }
-  return out.join(",");
+/** Deterministic PRNG so the matrix is stable between renders and builds. */
+function seeded(seed: number) {
+  let state = seed >>> 0;
+  return () => {
+    state = (state * 1664525 + 1013904223) >>> 0;
+    return state / 4294967296;
+  };
 }
-const STARS_A = staticStars(140, 7, 2200, 1200);
-const STARS_B = staticStars(60, 101, 2200, 1200);
 
-// Four-point sparkle stars, kept clear of the copy column.
-const SPARKLES = [
-  { top: "17%", left: "9%", size: 18, delay: "0s" },
-  { top: "29%", left: "86%", size: 22, delay: "1.6s" },
-  { top: "11%", left: "72%", size: 12, delay: "0.8s" },
-  { top: "47%", left: "5%", size: 12, delay: "2.4s" },
-  { top: "52%", left: "93%", size: 14, delay: "3.1s" },
-];
-
-// Small mint particles drifting up out of the moon's missing wedge.
-const MOTES = [
-  { x: -1.5, d: 0, dur: 7.5, s: 3 },
-  { x: 1.2, d: 1.8, dur: 9, s: 2 },
-  { x: -0.4, d: 3.4, dur: 8, s: 2.5 },
-  { x: 2.4, d: 5.1, dur: 10, s: 2 },
-  { x: -2.6, d: 6.2, dur: 8.5, s: 2 },
-  { x: 0.6, d: 4.2, dur: 11, s: 3 },
-];
-
-function supportsWebGL(): boolean {
-  try {
-    const c = document.createElement("canvas");
-    return Boolean(c.getContext("webgl2") ?? c.getContext("webgl"));
-  } catch {
-    return false;
+function makeRow(seed: number, length: number) {
+  const rand = seeded(seed);
+  let row = "";
+  for (let i = 0; i < length; i += 1) {
+    row += rand() < 0.1 ? " " : DIGITS[Math.floor(rand() * DIGITS.length)];
   }
+  return row;
 }
+
+const MATRIX_ROWS = Array.from({ length: 28 }, (_, index) => {
+  const rand = seeded(index * 97 + 13);
+  return {
+    text: makeRow(index * 131 + 7, 220),
+    top: index * 2.4,
+    opacity: 0.3 + rand() * 0.22,
+    duration: 38 + rand() * 26,
+    delay: -rand() * 40,
+  };
+});
+
+/**
+ * The horizon: a glowing dune ridge that rises at both edges and dips through the
+ * centre, echoing the reference's flowing fabric. ViewBox is 1600×760.
+ */
+const CREST =
+  "M -140 190 C 110 60 320 80 500 240 C 650 355 740 405 840 408 C 950 410 1040 315 1180 225 C 1340 120 1520 100 1740 195";
+const SECOND_CREST =
+  "M -140 268 C 120 148 330 165 520 305 C 670 420 760 470 850 472 C 960 474 1050 380 1190 292 C 1350 190 1520 170 1740 275";
+const THIRD_CREST =
+  "M -140 350 C 130 235 340 250 530 380 C 680 490 770 540 860 542 C 970 544 1060 450 1200 362 C 1360 260 1520 240 1740 355";
 
 export function HeroStage() {
-  const root = useRef<HTMLDivElement>(null);
-  const motion = useRef<HeroMotion>({ mx: 0, my: 0, sp: 0 });
-  const [gl, setGl] = useState(false);
-  const [glReady, setGlReady] = useState(false);
-  const [active, setActive] = useState(true);
-  const [compact, setCompact] = useState(false);
-
-  useEffect(() => {
-    const section = root.current?.closest("section");
-    if (!section) return;
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    setCompact(window.matchMedia("(max-width: 767px)").matches);
-
-    // Mount WebGL once the page has painted and the main thread is idle.
-    let idle = 0;
-    if (!reduce && supportsWebGL()) {
-      const ric = window.requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 300));
-      idle = ric(() => setGl(true), { timeout: 1500 }) as number;
-    }
-
-    const io = new IntersectionObserver(([e]) => setActive(Boolean(e?.isIntersecting)), { rootMargin: "80px" });
-    io.observe(section);
-
-    if (reduce) return () => io.disconnect();
-
-    // Pointer + scroll drive CSS variables on the section; eased in a rAF loop that sleeps when settled.
-    const target = { mx: 0, my: 0, sp: 0 };
-    const m = motion.current;
-    let raf = 0;
-    const tick = () => {
-      m.mx += (target.mx - m.mx) * 0.06;
-      m.my += (target.my - m.my) * 0.06;
-      m.sp += (target.sp - m.sp) * 0.14;
-      section.style.setProperty("--mx", m.mx.toFixed(4));
-      section.style.setProperty("--my", m.my.toFixed(4));
-      section.style.setProperty("--sp", m.sp.toFixed(4));
-      const settled =
-        Math.abs(target.mx - m.mx) < 0.001 && Math.abs(target.my - m.my) < 0.001 && Math.abs(target.sp - m.sp) < 0.001;
-      raf = settled ? 0 : requestAnimationFrame(tick);
-    };
-    const kick = () => {
-      if (!raf) raf = requestAnimationFrame(tick);
-    };
-    const onMove = (e: PointerEvent) => {
-      if (e.pointerType !== "mouse") return;
-      target.mx = (e.clientX / window.innerWidth) * 2 - 1;
-      target.my = (e.clientY / window.innerHeight) * 2 - 1;
-      kick();
-    };
-    const onScroll = () => {
-      const h = section.offsetHeight || window.innerHeight;
-      target.sp = Math.min(1, Math.max(0, window.scrollY / h));
-      kick();
-    };
-    onScroll();
-    window.addEventListener("pointermove", onMove, { passive: true });
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      io.disconnect();
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("scroll", onScroll);
-      if (raf) cancelAnimationFrame(raf);
-      if (idle) (window.cancelIdleCallback ?? window.clearTimeout)(idle);
-    };
-  }, []);
-
   return (
-    <div ref={root} className="pointer-events-none absolute inset-0 -z-0" aria-hidden="true">
-      {/* Deep-space tint */}
-      <div className="absolute inset-0 bg-[radial-gradient(120%_70%_at_50%_100%,#1a0f3d_0%,#0a0618_45%,#000_75%)]" />
+    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+      {/* Pale lavender sky that the digital rain hangs in */}
+      <div className="hero-sky" />
 
-      {/* Stars: CSS first paint, WebGL takes over when ready */}
-      <div className={cn("hero-par-stars absolute inset-0 transition-opacity duration-[1500ms]", glReady && "opacity-0")}>
-        <div className="absolute top-0 left-0 size-px rounded-full" style={{ boxShadow: STARS_A }} />
-        <div className="absolute top-0 left-0 size-[1.5px] rounded-full opacity-80" style={{ boxShadow: STARS_B }} />
-      </div>
-      {gl && (
-        <div className={cn("absolute inset-0 transition-opacity duration-[1500ms]", glReady ? "opacity-100" : "opacity-0")}>
-          <HeroStarfield motion={motion} active={active} compact={compact} onReady={() => setGlReady(true)} />
-        </div>
-      )}
+      {/* Halo: the pink/violet ring that rims the dark stage */}
+      <div className="hero-halo" />
+      <div className="hero-aurora hero-aurora-left" />
+      <div className="hero-aurora hero-aurora-right" />
 
-      {SPARKLES.map((s, n) => (
-        <svg
-          key={n}
-          viewBox="0 0 24 24"
-          className={cn("hero-sparkle absolute", n > 2 && "max-md:hidden")}
-          style={{ top: s.top, left: s.left, width: s.size, height: s.size, animationDelay: s.delay }}
-        >
-          <path d="M12 0C12.9 7.2 16.8 11.1 24 12 16.8 12.9 12.9 16.8 12 24 11.1 16.8 7.2 12.9 0 12 7.2 11.1 11.1 7.2 12 0Z" fill="white" />
-        </svg>
-      ))}
-
-      {/* Aurora behind the moon's horizon */}
-      <div className="hero-par-glow absolute inset-x-0 bottom-0 h-[70%]">
-        <div className="hero-glow absolute bottom-[-10%] left-1/2 h-full w-[min(1400px,160vw)] -translate-x-1/2 bg-[radial-gradient(50%_55%_at_50%_80%,rgba(94,234,212,0.16)_0%,rgba(124,92,246,0.14)_45%,transparent_75%)]" />
-      </div>
-
-      {/* Focal moon */}
-      <div className="hero-par-moon absolute bottom-0 left-1/2 w-[240vw] sm:w-[170vw] md:w-[clamp(960px,min(92vw,140svh),1900px)]">
-        <div className="hero-rise relative translate-y-[8%] md:translate-y-[17%]">
-          <Image
-            src="/hero/moon.webp"
-            alt=""
-            width={2000}
-            height={1117}
-            priority
-            quality={80}
-            sizes="(max-width: 767px) 240vw, min(92vw, 1900px)"
-            className="h-auto w-full select-none"
-            draggable={false}
-          />
-          <div className="absolute top-[22%] left-1/2 h-[24%] w-[6%]">
-            {MOTES.map((p, n) => (
-              <span
-                key={n}
-                className="hero-mote absolute bottom-0 rounded-full bg-[#b9fbe9]"
-                style={{
-                  left: `calc(50% + ${p.x}vw)`,
-                  width: p.s,
-                  height: p.s,
-                  animationDelay: `${p.d}s`,
-                  animationDuration: `${p.dur}s`,
-                }}
-              />
-            ))}
+      {/* Digital matrix sits between the sky and the dark stage, so it fades
+          into the centre exactly as it does in the reference. */}
+      <div className="hero-matrix">
+        {MATRIX_ROWS.map((row, index) => (
+          <div
+            key={index}
+            className="hero-matrix-row"
+            style={{
+              top: `${row.top}%`,
+              opacity: row.opacity,
+              animationDuration: `${row.duration}s`,
+              animationDelay: `${row.delay}s`,
+            }}
+          >
+            {row.text}
           </div>
-        </div>
+        ))}
       </div>
 
-      {/* Cloud banks: in front of the moon, part outward on scroll */}
-      <div className="hero-par-cloud-l absolute bottom-0 left-0 w-[80vw] sm:w-[62vw] md:w-[min(48vw,940px)]">
-        <div className="hero-cloud-in-l -translate-x-[38%] translate-y-[6%] sm:-translate-x-[20%] sm:translate-y-[24%] md:-translate-x-[12%] md:translate-y-[24%]">
-          <Image
-            src="/hero/clouds-left.webp"
-            alt=""
-            width={980}
-            height={965}
-            quality={78}
-            sizes="(max-width: 767px) 80vw, 48vw"
-            className="hero-cloud-mask-l h-auto w-full select-none"
-            draggable={false}
-          />
-        </div>
-      </div>
-      <div className="hero-par-cloud-r absolute right-0 bottom-0 w-[80vw] sm:w-[62vw] md:w-[min(48vw,940px)]">
-        <div className="hero-cloud-in-r translate-x-[38%] translate-y-[6%] sm:translate-x-[14%] sm:translate-y-[24%] md:translate-x-[6%] md:translate-y-[24%]">
-          <Image
-            src="/hero/clouds-right.webp"
-            alt=""
-            width={980}
-            height={965}
-            quality={78}
-            sizes="(max-width: 767px) 80vw, 48vw"
-            className="hero-cloud-mask-r h-auto w-full select-none"
-            draggable={false}
-          />
-        </div>
-      </div>
+      {/* Dark central stage that keeps the headline readable */}
+      <div className="hero-stage-oval" />
+      <div className="hero-aurora hero-aurora-core" />
 
-      {/* Film grain + vignette, then a soft floor into the next (dark) section */}
-      <div className="hero-grain absolute inset-0 opacity-[0.13] mix-blend-overlay" />
-      <div className="absolute inset-0 bg-[radial-gradient(130%_90%_at_50%_40%,transparent_55%,rgba(0,0,0,0.55)_100%)]" />
-      <div className="absolute inset-x-0 bottom-0 h-[15%] min-h-28 md:h-[24%] md:min-h-40 bg-gradient-to-b from-transparent via-black/75 to-black" />
+      <div className="hero-wave-glow" />
+
+      <svg className="hero-wave" viewBox="0 0 1600 760" fill="none" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="hero-wave-rim" x1="0" y1="300" x2="1600" y2="300" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#f5c2ff" stopOpacity="0.7" />
+            <stop offset="0.12" stopColor="#ffb3e6" stopOpacity="1" />
+            <stop offset="0.28" stopColor="#ffc4ee" stopOpacity="1" />
+            <stop offset="0.45" stopColor="#e879f9" stopOpacity="0.62" />
+            <stop offset="0.55" stopColor="#d946ef" stopOpacity="0.55" />
+            <stop offset="0.72" stopColor="#f472b6" stopOpacity="0.9" />
+            <stop offset="0.88" stopColor="#ffb3e6" stopOpacity="1" />
+            <stop offset="1" stopColor="#e0a6ff" stopOpacity="0.7" />
+          </linearGradient>
+          <filter id="hero-wave-ambient" x="-30%" y="-120%" width="160%" height="340%">
+            <feGaussianBlur stdDeviation="46" />
+          </filter>
+          <filter id="hero-wave-soft" x="-20%" y="-80%" width="140%" height="260%">
+            <feGaussianBlur stdDeviation="20" />
+          </filter>
+          <filter id="hero-wave-band" x="-10%" y="-60%" width="120%" height="220%">
+            <feGaussianBlur stdDeviation="7" />
+          </filter>
+          <filter id="hero-wave-sharp" x="-10%" y="-30%" width="120%" height="160%">
+            <feGaussianBlur stdDeviation="1.4" />
+          </filter>
+        </defs>
+        {/* Ambient haze, offset down so nothing glows above the crest. */}
+        <path d={CREST} transform="translate(0 52)" stroke="url(#hero-wave-rim)" strokeWidth="80" strokeOpacity="0.14" filter="url(#hero-wave-soft)" />
+        {/* Ribbon body: top edge sits exactly on the crest. */}
+        <path d={CREST} transform="translate(0 24)" stroke="url(#hero-wave-rim)" strokeWidth="52" strokeOpacity="0.8" filter="url(#hero-wave-band)" />
+        {/* Crisp crest line. */}
+        <path d={CREST} stroke="url(#hero-wave-rim)" strokeWidth="4" strokeOpacity="1" filter="url(#hero-wave-sharp)" />
+        <path d={SECOND_CREST} stroke="#c084fc" strokeWidth="1.8" strokeOpacity="0.16" />
+        <path d={THIRD_CREST} stroke="#8b5cf6" strokeWidth="1.4" strokeOpacity="0.09" />
+        <path d={CREST} stroke="#ffe4fb" strokeWidth="1.2" strokeOpacity="0.45" filter="url(#hero-wave-sharp)" />
+      </svg>
+
+      <div className="hero-wave-grain" />
+      <div className="hero-grain" />
+      <div className="hero-vignette" />
     </div>
   );
 }

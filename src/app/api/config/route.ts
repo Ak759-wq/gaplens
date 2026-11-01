@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { getIntegrationStatus } from "@/lib/env";
+import { getIntegrationHealth } from "@/server/integrations/health";
 
 export const dynamic = "force-dynamic";
 
 /** Reports which integrations are configured. Booleans (and non-secret model ids) only. */
-export function GET() {
+export async function GET() {
   const s = getIntegrationStatus();
+  const health = await getIntegrationHealth();
   return NextResponse.json(
     {
       llm: s.llm,
@@ -14,7 +16,8 @@ export function GET() {
       firecrawl: s.firecrawl,
       jinaReader: s.jinaReader,
       search: s.search,
-      pipelineReady: s.pipelineReady,
+      health,
+      pipelineReady: health.pipelineReady,
       byoKeySupported: true,
     },
     { headers: { "Cache-Control": "no-store" } },

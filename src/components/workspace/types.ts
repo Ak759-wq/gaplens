@@ -1,12 +1,13 @@
 export type DraftSource =
-  | { id: string; kind: "url"; url: string; dedupKey: string; addedAt: string }
-  | { id: string; kind: "pdf"; fileName: string; size: number; dedupKey: string; addedAt: string; file?: File };
+  | { id: string; kind: "url"; url: string; dedupKey: string; addedAt: string; extractionError?: string; example?: boolean }
+  | { id: string; kind: "pdf"; fileName: string; size: number; dedupKey: string; addedAt: string; file?: File; extractionError?: string; example?: boolean };
 
 export type Brief = { topic: string; question: string; objective: string };
 
 export type ClientIntegrationStatus = {
-  llm: { activeProvider: "gemini" | "openrouter" | null; geminiModel: string; openrouterModel: string };
+  llm: { activeProvider: "gemini" | "openrouter" | null; geminiModel: string; openrouterModel: string; verified: boolean; error?: string };
   supabase: boolean;
+  supabaseVerified: boolean;
   firecrawl: boolean;
   search: boolean;
   pipelineReady: boolean;

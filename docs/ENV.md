@@ -44,17 +44,29 @@ With neither, the AI stages show **Configuration required**; extraction and rule
   "jinaReader": { "available": true, "keyConfigured": false },
   "search": { "provider": null, "configured": false },
   "pipelineReady": true,
+  "health": {
+    "llm": { "activeProvider": "gemini", "model": "gemini-2.5-flash", "configured": true, "verified": true },
+    "supabase": { "configured": true, "verified": true },
+    "pipelineReady": true
+  },
   "byoKeySupported": true
 }
 ```
 
+`configured` means the required environment variables exist. `verified` means the server completed a
+live provider/database check. The workspace enables the full Analyse Sources action only when both
+the selected server AI provider and Supabase are verified. Browser BYO keys remain request-scoped and
+do not make production readiness appear verified.
+
 ## Database setup
 
-Apply both migrations in order (SQL editor, `supabase db push`, or the Management API):
+Apply all three migrations in order (SQL editor, `supabase db push`, or the Management API):
 
 1. `supabase/migrations/0001_init.sql`: tables, indexes, RLS (deny anon), grants revoked.
 2. `supabase/migrations/0002_source_metadata.sql`: `sources.metadata jsonb` (update date, date evidence, warnings,
    claim progress) and allows `extraction_provider = 'direct'`. Idempotent.
+3. `supabase/migrations/0003_source_content_dedup.sql`: prevents identical extracted source content from being
+   added twice to one research session. Idempotent.
 
 The app tolerates a missing 0002 (it drops the metadata and stores the `direct` provider as NULL), but the "updated" date,
 date evidence and per-source warnings are then not persisted.

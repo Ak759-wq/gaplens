@@ -48,7 +48,7 @@ freshness-assist, questions, checklist); the report is assembled without a model
 | `src/app/(app)/history` | Sessions from the database, open/delete |
 | `src/app/api/sessions/**` | Session, source, extraction, claims, stage, checklist and export routes |
 | `src/app/api/search` | Optional Tavily search (suggests URLs; never adds them itself) |
-| `src/app/api/config`, `health` | Integration status (booleans only), liveness |
+| `src/app/api/config`, `health` | Secret-free integration status, verified provider/database readiness, liveness |
 | `src/server/ai/llm.ts` | Provider abstraction: resolution (BYO → `LLM_PROVIDER` → auto Gemini-first), JSON + Zod validation with one corrective retry |
 | `src/server/ai/gemini.ts` | Gemini REST (`x-goog-api-key` only), `responseMimeType: application/json` + `responseSchema`, 2.0-flash fallback on 404, `RetryInfo` backoff, thinking off for 2.5-flash latency |
 | `src/server/ai/openrouter.ts` | OpenRouter client (optional provider) |
@@ -60,8 +60,9 @@ freshness-assist, questions, checklist); the report is assembled without a model
 | `src/server/net/safeFetch.ts` | SSRF-hardened fetch (see Security) |
 | `src/server/pipeline/*` | Stage runners over repositories, row mappers, `SessionView` builder |
 | `src/server/db/*` | Repository contracts, Supabase implementation, in-memory implementation (tests / `GAPLENS_DB=memory`) |
+| `src/server/integrations/health.ts` | Live, bounded checks for the selected server AI provider and required Supabase tables |
 | `src/lib/report-markdown.ts` | 10-section Markdown report |
-| `supabase/migrations` | `0001_init.sql`, `0002_source_metadata.sql` |
+| `supabase/migrations` | `0001_init.sql`, `0002_source_metadata.sql`, `0003_source_content_dedup.sql` |
 
 All server modules import `server-only`, so importing them into a client component fails the build.
 
@@ -70,7 +71,8 @@ All server modules import `server-only`, so importing them into a client compone
 - `research_sessions`: brief + status (`draft → extracting → analyzing → complete`).
 - `sources`: one row per URL/PDF. `published_at` = the source's stated publication date, else its stated update date;
   `metadata` (0002) holds the update date, where each date came from, warnings, extraction provider and claim progress.
-  PDF files themselves are not stored, only their extracted text.
+  PDF files themselves are not stored, only their extracted text. URL identity is normalized in application code,
+  and 0003 prevents identical extracted content from being added twice within one session.
 - `claims`: verified claims only (`quote_verified = true`, char offsets for highlighting).
 - `findings`: `type` gap | contradiction | freshness | question. The full typed object is kept in `payload`.
   Gap-type rows hold **topic coverage**: one row per required topic, labelled `verified_in_source` (covered),
