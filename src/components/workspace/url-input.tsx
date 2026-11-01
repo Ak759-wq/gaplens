@@ -53,36 +53,48 @@ export function UrlInput({
 
   return (
     <div className="space-y-2">
-      <Label htmlFor={id} className="text-[#202322]">Add a source URL</Label>
+      <Label htmlFor={id} className="text-[13px] font-medium text-[#202322]">
+        Website URL
+      </Label>
       <div className="flex gap-2">
-        <Input
-          id={id}
-          type="text"
-          inputMode="url"
-          autoComplete="off"
-          spellCheck={false}
-          placeholder="https://example.org/page (paste one or several)"
-          value={value}
+        <div className="relative min-w-0 flex-1">
+          <Link2 className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[#9a9e99]" aria-hidden="true" />
+          <Input
+            id={id}
+            type="text"
+            inputMode="url"
+            autoComplete="off"
+            spellCheck={false}
+            placeholder="Paste a website URL"
+            className="h-11 rounded-lg border-[#e3e3de] bg-white pl-9 text-[14px] text-[#202322] placeholder:text-[#9a9e99] focus-visible:border-[#202725]/30 focus-visible:ring-[#202725]/10"
+            value={value}
+            disabled={disabled}
+            onChange={(e) => setValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                submit();
+              }
+            }}
+            aria-invalid={errors.length > 0 || undefined}
+            aria-describedby={`${id}-help ${errors.length ? `${id}-err` : ""}`}
+          />
+        </div>
+        <Button
+          type="button"
+          className="h-11 shrink-0 rounded-lg bg-[#202725] px-4 text-[14px] font-medium text-white shadow-none hover:bg-[#2f3633]"
+          onClick={submit}
           disabled={disabled}
-          onChange={(e) => setValue(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              submit();
-            }
-          }}
-          aria-invalid={errors.length > 0 || undefined}
-          aria-describedby={`${id}-help ${errors.length ? `${id}-err` : ""}`}
-        />
-        <Button type="button" variant="default" className="shrink-0 bg-[#202322] text-white hover:bg-[#2f3431]" onClick={submit} disabled={disabled}>
-          <Link2 /> Add source
+        >
+          Add source
         </Button>
       </div>
       <p id={`${id}-help`} className="text-xs text-[#6b706f]">
-        Public http(s) pages only. Local, private-network and credentialed URLs are rejected.
+        Public http(s) pages only. Paste several separated by spaces or commas. Local, private-network and credentialed
+        URLs are rejected.
       </p>
       {errors.length > 0 && (
-        <ul id={`${id}-err`} role="alert" className="space-y-1 text-xs text-destructive">
+        <ul id={`${id}-err`} role="alert" className="space-y-1 text-xs text-[#c77f76]">
           {errors.map((e) => (
             <li key={e} className="break-all">{e}</li>
           ))}

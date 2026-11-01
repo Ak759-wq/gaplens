@@ -15,11 +15,11 @@ const LANDING_NAV = [
   { href: "/history", label: "History" },
 ];
 
-/** In-app navigation, unchanged from the existing product shell. */
+/** In-app navigation, matching the product shell. */
 const APP_NAV = [
-  { href: "/#features", label: "Features" },
+  { href: "/#features", label: "Product" },
   { href: "/#how-it-works", label: "How it works" },
-  { href: "/#example", label: "Example" },
+  { href: "/#example", label: "Sources & integrations" },
   { href: "/history", label: "History" },
 ];
 
@@ -121,36 +121,36 @@ export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/80 bg-background/85 text-foreground backdrop-blur-xl supports-[backdrop-filter]:bg-background/75">
+    <header className="sticky top-0 z-40 border-b border-[#e3e3de] bg-[#faf9f6]/92 backdrop-blur supports-[backdrop-filter]:bg-[#faf9f6]/80">
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-4 focus:rounded focus:bg-card focus:px-3 focus:py-1.5 focus:text-foreground focus:shadow"
       >
         Skip to content
       </a>
-      <div className="mx-auto grid h-14 max-w-7xl grid-cols-[1fr_auto] items-center gap-4 px-4 sm:px-6 md:grid-cols-[1fr_auto_1fr]">
+      <div className="mx-auto grid h-16 max-w-[1100px] grid-cols-[1fr_auto] items-center gap-6 px-4 sm:px-6 md:grid-cols-[1fr_auto_1fr]">
         <Logo tone="light" />
-        <nav aria-label="Primary" className="hidden items-center gap-1 text-[13px] md:flex">
+        <nav aria-label="Primary" className="hidden items-center gap-0.5 text-[13.5px] lg:flex">
           {nav.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className="rounded-full px-3.5 py-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              className="whitespace-nowrap rounded-md px-3 py-2 text-[#6b706f] transition-colors hover:bg-[#f2f1ed] hover:text-[#202322]"
             >
               {item.label}
             </Link>
           ))}
         </nav>
-        <div className="flex items-center justify-end gap-2">
+        <div className="flex items-center justify-end gap-2.5">
           <Link
             href="/workspace"
-            className="hidden h-9 items-center rounded-full border border-border bg-card px-4 text-[13.5px] font-medium transition-colors hover:border-brand/40 hover:bg-brand-soft sm:inline-flex"
+            className="hidden h-10 items-center whitespace-nowrap rounded-lg border border-[#e3e3de] bg-white px-4 text-[13.5px] font-medium text-[#202322] transition-colors hover:border-[#202322]/25 hover:bg-[#faf9f6] sm:inline-flex"
           >
             Explore workspace
           </Link>
           <Link
             href="/workspace"
-            className="inline-flex h-9 items-center rounded-full bg-[#202322] px-4 text-[13.5px] font-medium text-white transition-colors hover:bg-[#2f3431]"
+            className="inline-flex h-10 items-center whitespace-nowrap rounded-lg bg-[#202725] px-4 text-[13.5px] font-medium text-white transition-colors hover:bg-[#2f3633]"
           >
             Start researching
           </Link>
@@ -159,14 +159,14 @@ export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
             aria-label={mobileOpen ? "Close menu" : "Open menu"}
             aria-expanded={mobileOpen}
             onClick={() => setMobileOpen((open) => !open)}
-            className="inline-flex size-9 items-center justify-center rounded-lg border border-border text-foreground md:hidden"
+            className="inline-flex size-10 items-center justify-center rounded-lg border border-[#e3e3de] bg-white text-[#202322] lg:hidden"
           >
             {mobileOpen ? <X className="size-4" /> : <Menu className="size-4" />}
           </button>
         </div>
       </div>
       {mobileOpen && (
-        <div className="absolute inset-x-3 top-full min-h-[calc(100svh-5rem)] rounded-3xl border-t border-border bg-background/95 p-5 text-foreground backdrop-blur-2xl md:hidden">
+        <div className="absolute inset-x-3 top-full min-h-[calc(100svh-5rem)] rounded-3xl border-t border-border bg-background/95 p-5 text-foreground backdrop-blur-2xl lg:hidden">
           <nav aria-label="Mobile primary" className="flex flex-col gap-2">
             {nav.map((item) => (
               <Link
