@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Menu, X } from "lucide-react";
+import { Menu, Sparkles, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "./logo";
 
@@ -121,21 +121,21 @@ export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-[#e3e3de] bg-[#faf9f6]/92 backdrop-blur supports-[backdrop-filter]:bg-[#faf9f6]/80">
+    <header className="sticky top-0 z-40 border-b border-[#e3e3de] bg-[#faf9f6]/95 backdrop-blur supports-[backdrop-filter]:bg-[#faf9f6]/85">
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-4 focus:rounded focus:bg-card focus:px-3 focus:py-1.5 focus:text-foreground focus:shadow"
       >
         Skip to content
       </a>
-      <div className="mx-auto grid h-16 max-w-[1100px] grid-cols-[1fr_auto] items-center gap-6 px-4 sm:px-6 md:grid-cols-[1fr_auto_1fr]">
-        <Logo tone="light" />
-        <nav aria-label="Primary" className="hidden items-center gap-0.5 text-[13.5px] lg:flex">
+      <div className="mx-auto grid h-[72px] max-w-[1100px] grid-cols-[1fr_auto] items-center gap-6 px-4 sm:px-6 md:grid-cols-[1fr_auto_1fr]">
+        <Logo tone="light" variant="spark" />
+        <nav aria-label="Primary" className="hidden items-center gap-7 text-[14px] lg:flex xl:gap-9">
           {nav.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className="whitespace-nowrap rounded-md px-3 py-2 text-[#6b706f] transition-colors hover:bg-[#f2f1ed] hover:text-[#202322]"
+              className="whitespace-nowrap py-2 text-[#4a4f4d] transition-colors hover:text-[#202322]"
             >
               {item.label}
             </Link>
@@ -144,14 +144,15 @@ export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
         <div className="flex items-center justify-end gap-2.5">
           <Link
             href="/workspace"
-            className="hidden h-10 items-center whitespace-nowrap rounded-lg border border-[#e3e3de] bg-white px-4 text-[13.5px] font-medium text-[#202322] transition-colors hover:border-[#202322]/25 hover:bg-[#faf9f6] sm:inline-flex"
+            className="hidden h-10 items-center whitespace-nowrap rounded-full border border-[#e3e3de] bg-white px-5 text-[13.5px] font-medium text-[#202322] transition-colors hover:border-[#202322]/25 hover:bg-[#f7f6f2] sm:inline-flex"
           >
             Explore workspace
           </Link>
           <Link
             href="/workspace"
-            className="inline-flex h-10 items-center whitespace-nowrap rounded-lg bg-[#202725] px-4 text-[13.5px] font-medium text-white transition-colors hover:bg-[#2f3633]"
+            className="inline-flex h-10 items-center whitespace-nowrap rounded-full bg-[#202725] px-5 text-[13.5px] font-medium text-white transition-colors hover:bg-[#2f3633]"
           >
+            <Sparkles className="size-4" aria-hidden="true" />
             Start researching
           </Link>
           <button
@@ -159,7 +160,7 @@ export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
             aria-label={mobileOpen ? "Close menu" : "Open menu"}
             aria-expanded={mobileOpen}
             onClick={() => setMobileOpen((open) => !open)}
-            className="inline-flex size-10 items-center justify-center rounded-lg border border-[#e3e3de] bg-white text-[#202322] lg:hidden"
+            className="inline-flex size-10 items-center justify-center rounded-full border border-[#e3e3de] bg-white text-[#202322] lg:hidden"
           >
             {mobileOpen ? <X className="size-4" /> : <Menu className="size-4" />}
           </button>
@@ -173,7 +174,7 @@ export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
                 key={item.href}
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
-                className="rounded-xl px-4 py-3 text-base text-muted-foreground hover:bg-accent hover:text-foreground"
+                className="rounded-xl px-4 py-3 text-[15px] text-[#4a4f4d] hover:bg-[#f2f1ed] hover:text-[#202322]"
               >
                 {item.label}
               </Link>
@@ -181,7 +182,7 @@ export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
             <Link
               href="/workspace"
               onClick={() => setMobileOpen(false)}
-              className="mt-4 inline-flex h-11 items-center justify-center rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground"
+              className="mt-3 inline-flex h-11 items-center justify-center rounded-full bg-[#202725] px-5 text-sm font-medium text-white"
             >
               Start researching
             </Link>

@@ -2,14 +2,21 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeftRight, BadgeCheck, CheckCircle2, CircleDashed, Clock3, Loader2, Sparkles } from "lucide-react";
+import {
+  ArrowLeftRight,
+  Check,
+  CheckCircle2,
+  Circle,
+  Clock3,
+  Loader2,
+  Sparkles,
+} from "lucide-react";
 import { apiFetch, ApiClientError } from "@/lib/client/api";
 import { checkUrl, urlDedupKey } from "@/lib/url-safety";
 import { AiSettings } from "./ai-settings";
 import { Landscape } from "./landscape";
 import { WebSearch } from "./web-search";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,6 +30,9 @@ import { newId, type Brief, type ClientIntegrationStatus, type DraftSource } fro
 
 const DRAFT_KEY = "gaplens:workspace-draft:v1";
 const MIN_SOURCES = 2;
+
+/** Shared surface: white card, hairline border, 12px radius, no shadow. */
+const CARD = "rounded-xl border border-[#e3e3de] bg-white shadow-none";
 
 type StoredDraft = { brief: Brief; sources: DraftSource[] };
 
@@ -76,7 +86,6 @@ export function ResearchWorkspace({ integrations }: { integrations: ClientIntegr
   const fieldError = (k: keyof Brief) =>
     !briefResult.success && touched[k] ? briefResult.error.issues.find((i) => i.path[0] === k)?.message : undefined;
   const addedSourceCount = sources.filter((s) => (s.kind === "url" || Boolean(s.file)) && !s.extractionError).length;
-  const extractedSourceCount = 0;
   const atCapacity = sources.length >= MAX_SOURCES;
   const missingPdfFiles = sources.some((s) => s.kind === "pdf" && !s.file);
 
@@ -88,7 +97,7 @@ export function ResearchWorkspace({ integrations }: { integrations: ClientIntegr
   const readiness: { ok: boolean; label: string; note?: string }[] = [
     {
       ok: briefResult.success,
-      label: briefResult.success ? "Research brief completed" : "Research brief incomplete",
+      label: "Research brief completed",
     },
     {
       ok: addedSourceCount >= MIN_SOURCES,
@@ -96,7 +105,7 @@ export function ResearchWorkspace({ integrations }: { integrations: ClientIntegr
     },
     {
       ok: !missingPdfFiles,
-      label: missingPdfFiles ? "PDF files need re-attaching" : "PDF extraction ready",
+      label: "PDF extraction ready",
     },
     {
       ok: integrations.supabaseVerified,
@@ -106,7 +115,7 @@ export function ResearchWorkspace({ integrations }: { integrations: ClientIntegr
     {
       ok: integrations.llm.verified,
       label: "AI provider",
-      note: integrations.llm.verified ? "Connected" : integrations.llm.error ?? "Not configured",
+      note: integrations.llm.verified ? "Connected" : "Not configured",
     },
   ];
   const canAnalyse = readiness.every((r) => r.ok) && !submitting;
@@ -195,44 +204,51 @@ export function ResearchWorkspace({ integrations }: { integrations: ClientIntegr
 
   return (
     <div className="relative">
-      {/* Watercolour hills sit behind everything and never overlap the controls. */}
-      <Landscape />
+      {/* Watercolour hills: viewport-wide and fixed, so they stay behind the cards
+          without adding horizontal overflow. The page footer is opaque and stacks
+          above them at the end of the document. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-x-0 bottom-0 h-[clamp(200px,28vh,320px)] overflow-hidden"
+      >
+        <Landscape />
+      </div>
 
-      <div className="relative z-10 grid gap-6 lg:grid-cols-[minmax(0,1.65fr)_minmax(300px,0.85fr)]">
+      <div className="relative z-10 grid gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(340px,1.15fr)]">
         <div className="min-w-0 space-y-6">
-          <Card className="gap-4 rounded-xl border-[#e3e3de] bg-white py-6 shadow-none">
-            <CardHeader className="gap-3 px-5 pt-0 sm:px-6">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="space-y-1.5">
-                  <CardTitle className="font-display text-[22px] font-medium tracking-[-0.01em] text-[#202322]">
-                    Research brief
-                  </CardTitle>
-                  <CardDescription className="text-[14px] text-[#6b706f]">
-                    What are you trying to find out, and what decision does it support?
-                  </CardDescription>
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-9 rounded-full border-[#e3e3de] bg-white text-[13px] text-[#202322] shadow-none hover:border-[#202322]/25 hover:bg-[#faf9f6]"
-                  onClick={loadExample}
-                  title="Pre-fill a sample brief about the Central Sector Scheme of Scholarship with 5 real public sources"
-                >
-                  <Sparkles className="size-3.5" aria-hidden="true" /> Load example
-                </Button>
-              </div>
-              {exampleLoaded && (
-                <p className="rounded-lg border border-[#d6e3d3] bg-[#eaf0e6] px-3 py-2 text-xs text-[#536d53]">
-                  Sample loaded: a CSSS scholarship brief with 5 real public sources (NSP guidelines, a CBSE notice, The
-                  Hindu, a third-party aggregator and the NSP announcements page). Nothing is pre-analysed; edit anything
-                  before you run it.
+          {/* ── Research brief ─────────────────────────────────────────── */}
+          <section className={`${CARD} p-6 sm:p-7`} aria-labelledby="brief-heading">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 id="brief-heading" className="font-display text-[24px] leading-tight font-medium tracking-[-0.01em] text-[#202322]">
+                  Research brief
+                </h2>
+                <p className="mt-1.5 text-[13.5px] text-[#6b706f]">
+                  What are you trying to find out, and what decision does it support?
                 </p>
-              )}
-            </CardHeader>
-            <CardContent className="space-y-5 px-5 pb-0 sm:px-6">
-              <div className="space-y-2">
-                <Label htmlFor="topic" className="text-[13px] font-medium text-[#202322]">
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9 shrink-0 rounded-full border-[#e3e3de] bg-white px-4 text-[12.5px] font-medium text-[#202322] shadow-none hover:border-[#202322]/25 hover:bg-[#f7f6f2]"
+                onClick={loadExample}
+                title="Pre-fill a sample brief about the Central Sector Scheme of Scholarship with 5 real public sources"
+              >
+                <Sparkles className="size-3.5" aria-hidden="true" /> Load example
+              </Button>
+            </div>
+
+            {exampleLoaded && (
+              <p className="mt-4 border-l-2 border-[#c9d8c4] pl-3 text-[12px] leading-relaxed text-[#536d53]">
+                Sample loaded: a CSSS scholarship brief with 5 real public sources. Nothing is pre-analysed; edit
+                anything before you run it.
+              </p>
+            )}
+
+            <div className="mt-5 space-y-[18px]">
+              <div className="space-y-1.5">
+                <Label htmlFor="topic" className="text-[12.5px] font-semibold text-[#202322]">
                   Research topic
                 </Label>
                 <Input
@@ -240,16 +256,21 @@ export function ResearchWorkspace({ integrations }: { integrations: ClientIntegr
                   placeholder="e.g. State merit scholarship for engineering students"
                   value={brief.topic}
                   maxLength={200}
+                  className="h-10 rounded-lg border-[#e3e3de] bg-white px-3 text-[13.5px] shadow-none placeholder:text-[#9a9e99] focus-visible:border-[#202725]/30 focus-visible:ring-[#202725]/10"
                   onChange={(e) => setBrief({ ...brief, topic: e.target.value })}
                   onBlur={() => setTouched((t) => ({ ...t, topic: true }))}
                   aria-invalid={!!fieldError("topic") || undefined}
                   aria-describedby={fieldError("topic") ? "topic-err" : undefined}
                 />
-                {fieldError("topic") && <p id="topic-err" className="text-xs text-[#c77f76]">{fieldError("topic")}</p>}
+                {fieldError("topic") && (
+                  <p id="topic-err" className="text-[12px] text-[#c77f76]">
+                    {fieldError("topic")}
+                  </p>
+                )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="question" className="text-[13px] font-medium text-[#202322]">
+              <div className="space-y-1.5">
+                <Label htmlFor="question" className="text-[12.5px] font-semibold text-[#202322]">
                   Specific question
                 </Label>
                 <Textarea
@@ -258,16 +279,21 @@ export function ResearchWorkspace({ integrations }: { integrations: ClientIntegr
                   value={brief.question}
                   maxLength={1000}
                   rows={3}
+                  className="min-h-[74px] rounded-lg border-[#e3e3de] bg-white px-3 py-2.5 text-[13.5px] shadow-none placeholder:text-[#9a9e99] focus-visible:border-[#202725]/30 focus-visible:ring-[#202725]/10"
                   onChange={(e) => setBrief({ ...brief, question: e.target.value })}
                   onBlur={() => setTouched((t) => ({ ...t, question: true }))}
                   aria-invalid={!!fieldError("question") || undefined}
                   aria-describedby={fieldError("question") ? "question-err" : undefined}
                 />
-                {fieldError("question") && <p id="question-err" className="text-xs text-[#c77f76]">{fieldError("question")}</p>}
+                {fieldError("question") && (
+                  <p id="question-err" className="text-[12px] text-[#c77f76]">
+                    {fieldError("question")}
+                  </p>
+                )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="objective" className="text-[13px] font-medium text-[#202322]">
+              <div className="space-y-1.5">
+                <Label htmlFor="objective" className="text-[12.5px] font-semibold text-[#202322]">
                   Objective <span className="font-normal text-[#6b706f]">(optional)</span>
                 </Label>
                 <Textarea
@@ -276,183 +302,164 @@ export function ResearchWorkspace({ integrations }: { integrations: ClientIntegr
                   value={brief.objective}
                   maxLength={1000}
                   rows={2}
+                  className="min-h-[58px] rounded-lg border-[#e3e3de] bg-white px-3 py-2.5 text-[13.5px] shadow-none placeholder:text-[#9a9e99] focus-visible:border-[#202725]/30 focus-visible:ring-[#202725]/10"
                   onChange={(e) => setBrief({ ...brief, objective: e.target.value })}
                 />
               </div>
-            </CardContent>
-          </Card>
-
-        <Card className="gap-4 rounded-xl border-[#e3e3de] bg-white py-6 shadow-none">
-          <CardHeader className="gap-3 px-5 pt-0 sm:px-6">
-            <div className="flex items-center justify-between gap-3">
-              <CardTitle className="font-display text-[22px] font-medium tracking-[-0.01em] text-[#202322]">
-                Sources
-              </CardTitle>
-              <span className="rounded-full border border-[#d6e3d3] bg-[#eaf0e6] px-2.5 py-1 text-[11px] font-medium text-[#536d53]">
-                {extractedSourceCount} extracted · {addedSourceCount} added
-              </span>
             </div>
-            <CardDescription className="text-[14px] text-[#6b706f]">
-              Add pages and documents to cross-examine. Extraction status, titles, and dates are confirmed by the real
-              pipeline.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-5 px-5 pb-0 sm:px-6">
-            <UrlInput existingKeys={existingKeys} onAdd={addUrls} disabled={atCapacity} />
-            <PdfDropzone existingKeys={dropzoneKeys} onAdd={addPdfs} disabled={atCapacity && !missingPdfFiles} />
-            <WebSearch
-              configured={integrations.search}
-              existing={new Set(sources.filter((s) => s.kind === "url").map((s) => s.url))}
-              onAdd={(url) => {
-                const r = checkUrl(url);
-                if (r.ok && !existingKeys.has(urlDedupKey(r.url)) && !atCapacity) addUrls([{ url: r.normalized, dedupKey: urlDedupKey(r.url) }]);
-              }}
-            />
-            {atCapacity && <p className="text-xs text-[#6b706f]">Maximum of {MAX_SOURCES} sources reached.</p>}
-            {missingPdfFiles && (
-              <p className="rounded-lg border border-[#eadfc7] bg-[#fbf6e9] px-3 py-2 text-xs text-[#8b6a33]">
-                Some PDFs were restored from your saved draft by name only. Browsers can&apos;t keep files between
-                visits, so drop them in again to re-attach.
-              </p>
-            )}
-            <SourceTable sources={sources} onRemove={(id) => setSources((prev) => prev.filter((s) => s.id !== id))} />
-          </CardContent>
-        </Card>
-      </div>
+          </section>
 
-      <aside className="space-y-5 lg:sticky lg:top-20 lg:self-start" aria-label="Analysis status">
-        <Card className="gap-4 rounded-xl border-[#e3e3de] bg-white py-6 shadow-none">
-          <CardHeader className="gap-2 px-5 pt-0 sm:px-6">
-            <CardTitle className="font-display text-[22px] font-medium tracking-[-0.01em] text-[#202322]">
+          {/* ── Sources ────────────────────────────────────────────────── */}
+          <section className={`${CARD} p-6 sm:p-7`} aria-labelledby="sources-heading">
+            <h2 id="sources-heading" className="font-display text-[24px] leading-tight font-medium tracking-[-0.01em] text-[#202322]">
+              Sources
+            </h2>
+
+            <div className="mt-5 space-y-4">
+              <UrlInput existingKeys={existingKeys} onAdd={addUrls} disabled={atCapacity} />
+              <PdfDropzone existingKeys={dropzoneKeys} onAdd={addPdfs} disabled={atCapacity && !missingPdfFiles} />
+
+              <WebSearch
+                configured={integrations.search}
+                existing={new Set(sources.filter((s) => s.kind === "url").map((s) => s.url))}
+                onAdd={(url) => {
+                  const r = checkUrl(url);
+                  if (r.ok && !existingKeys.has(urlDedupKey(r.url)) && !atCapacity) addUrls([{ url: r.normalized, dedupKey: urlDedupKey(r.url) }]);
+                }}
+              />
+
+              {atCapacity && (
+                <p className="text-[12px] text-[#6b706f]">Maximum of {MAX_SOURCES} sources reached.</p>
+              )}
+              {missingPdfFiles && (
+                <p className="rounded-lg border border-[#eadfc7] bg-[#fbf6e9] px-3 py-2 text-[12px] leading-relaxed text-[#8b6a33]">
+                  Some PDFs were restored from your saved draft by name only. Browsers can&apos;t keep files between
+                  visits, so drop them in again to re-attach.
+                </p>
+              )}
+
+              <SourceTable sources={sources} onRemove={(id) => setSources((prev) => prev.filter((s) => s.id !== id))} />
+            </div>
+          </section>
+        </div>
+
+        {/* ── Right rail: one card, as in the reference ───────────────── */}
+        <aside className="min-w-0 lg:sticky lg:top-[88px] lg:self-start" aria-label="Analysis status">
+          <div className={`${CARD} p-6 sm:p-7`}>
+            <h2 className="font-display text-[24px] leading-tight font-medium tracking-[-0.01em] text-[#202322]">
               Analysis readiness
-            </CardTitle>
-            <CardDescription className="text-[14px] text-[#6b706f]">A live check before GapLens runs.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-5 px-5 pb-0 sm:px-6">
-            <ul className="space-y-3.5 text-sm" aria-live="polite">
+            </h2>
+            <p className="mt-1.5 text-[13.5px] text-[#6b706f]">A live check before GapLens runs.</p>
+
+            <ul className="mt-5 space-y-3" aria-live="polite">
               {readiness.map((r) => (
-                <li key={r.label} className="flex items-start gap-3">
-                  <span
-                    className={
-                      r.ok
-                        ? "mt-px flex size-[18px] shrink-0 items-center justify-center rounded-full border border-[#536d53]/35 bg-[#eaf0e6]"
-                        : "mt-px flex size-[18px] shrink-0 items-center justify-center rounded-full border border-[#e3e3de] bg-white"
-                    }
-                    aria-hidden="true"
-                  >
-                    {r.ok ? (
-                      <CheckCircle2 className="size-3 text-[#536d53]" />
-                    ) : (
-                      <span className="size-1.5 rounded-full bg-[#d5d6d1]" />
-                    )}
+                <li key={r.label} className="flex items-center justify-between gap-3">
+                  <span className="flex min-w-0 items-center gap-2.5">
+                    <span
+                      className={
+                        r.ok
+                          ? "flex size-[18px] shrink-0 items-center justify-center rounded-full border-transparent bg-[#536d53] text-white"
+                          : "flex size-[18px] shrink-0 items-center justify-center rounded-full border border-[#cfd1ca] text-transparent"
+                      }
+                      aria-hidden="true"
+                    >
+                      {r.ok ? <Check className="size-3" strokeWidth={3.5} /> : <Circle className="size-0" />}
+                    </span>
+                    <span className="min-w-0 truncate text-[13px] text-[#202322]">{r.label}</span>
                   </span>
-                  <span className="min-w-0 flex-1 text-[13.5px] leading-snug text-[#202322]">
-                    {r.label}
-                    {r.note && (
-                      <span className={r.ok ? "ml-1.5 text-[#536d53]" : "ml-1.5 text-[#b58a42]"}>· {r.note}</span>
-                    )}
-                  </span>
+                  {r.note && (
+                    <span
+                      className={`shrink-0 text-right text-[12px] font-medium whitespace-nowrap ${r.ok ? "text-[#4a4f4d]" : "text-[#b58a42]"}`}
+                    >
+                      {r.note}
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>
 
-            <div className="border-t border-[#e3e3de] pt-5" />
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                {/* span wrapper so the tooltip works while the button is disabled */}
-                <span
-                  tabIndex={canAnalyse ? -1 : 0}
-                  className="block rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40"
-                  aria-describedby="analyse-why"
-                >
-                  <Button
-                    type="button"
-                    size="lg"
-                    className="w-full rounded-lg bg-[#202725] text-[14px] font-medium text-white shadow-none hover:bg-[#2f3633] disabled:bg-[#d8d9d4] disabled:text-[#8a8e8b]"
-                    disabled={!canAnalyse}
-                    onClick={analyse}
+            <div className="mt-5 border-t border-[#e3e3de] pt-5">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  {/* span wrapper so the tooltip works while the button is disabled */}
+                  <span
+                    tabIndex={canAnalyse ? -1 : 0}
+                    className="block rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40"
+                    aria-describedby="analyse-why"
                   >
-                    {submitting ? <Loader2 className="animate-spin" /> : <Sparkles />} {submitting ?? "Analyse sources"}
-                  </Button>
-                </span>
-              </TooltipTrigger>
-              {!canAnalyse && !submitting && (
-                <TooltipContent side="bottom">{`Not ready yet: ${blockers.join("; ")}.`}</TooltipContent>
+                    <Button
+                      type="button"
+                      className="h-10 w-full rounded-lg bg-[#202725] text-[13.5px] font-medium text-white shadow-none hover:bg-[#2f3633] disabled:bg-[#dcdcd7] disabled:text-[#8f938f]"
+                      disabled={!canAnalyse}
+                      onClick={analyse}
+                    >
+                      {submitting ? <Loader2 className="animate-spin" /> : <Sparkles className="size-4" />}
+                      {submitting ?? "Analyse sources"}
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                {!canAnalyse && !submitting && (
+                  <TooltipContent side="bottom">{`Not ready yet: ${blockers.join("; ")}.`}</TooltipContent>
+                )}
+              </Tooltip>
+              <p id="analyse-why" className="sr-only">
+                {canAnalyse ? "Ready to analyse." : `Analysis disabled. Outstanding: ${blockers.join("; ")}.`}
+              </p>
+              {submitError && (
+                <p role="alert" className="mt-2 text-[12px] text-[#c77f76]">
+                  {submitError}
+                </p>
               )}
-            </Tooltip>
-            <p id="analyse-why" className="sr-only">
-              {canAnalyse ? "Ready to analyse." : `Analysis disabled. Outstanding: ${blockers.join("; ")}.`}
-            </p>
-            {submitError && (
-              <p role="alert" className="text-xs text-[#c77f76]">
-                {submitError}
-              </p>
-            )}
+            </div>
 
-            <div className="rounded-xl border border-[#e3e3de] bg-[#faf9f6] p-4" role="status">
-              <p className="text-[13px] text-[#202322]">
-                <span className="font-medium">Status:</span> <span className="text-[#6b706f]">Draft, not analysed</span>
+            <div className="mt-4 rounded-lg border border-[#eceae4] bg-[#f7f6f2] px-4 py-3.5" role="status">
+              <p className="text-[12.5px] text-[#202322]">
+                <span className="font-semibold">Status:</span>{" "}
+                <span className="text-[#4a4f4d]">Draft, not analysed</span>
               </p>
-              <p className="mt-1.5 text-xs leading-relaxed text-[#6b706f]">
+              <p className="mt-1 text-[12px] leading-relaxed text-[#6b706f]">
                 Add sources and configure integrations to begin evidence analysis.
               </p>
             </div>
-            <div className="[&_div.rounded-lg.border]:border-[#e3e3de] [&_div.rounded-lg.border]:bg-[#faf9f6] [&_p]:text-[#6b706f]">
+
+            <div className="mt-4">
               <AiSettings server={integrations.llm} />
             </div>
-          </CardContent>
-        </Card>
 
-        <Card className="rounded-xl border-[#e3e3de] bg-white py-6 shadow-none">
-          <CardHeader className="gap-1 px-5 pt-0 sm:px-6">
-            <CardTitle className="font-display text-[19px] font-medium tracking-[-0.01em] text-[#202322]">
-              What GapLens checks
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 px-5 pb-0 sm:px-6">
-            {[
-              {
-                icon: BadgeCheck,
-                title: "Verified in source",
-                detail: "A claim supported by one or more sources.",
-              },
-              {
-                icon: CircleDashed,
-                title: "Potential gap",
-                detail: "Important information not found in reviewed sources.",
-              },
-              {
-                icon: ArrowLeftRight,
-                title: "Possible contradiction",
-                detail: "Conflicting claims across different sources.",
-              },
-              {
-                icon: Clock3,
-                title: "Potentially outdated",
-                detail: "Information that may no longer be current.",
-              },
-            ].map(({ icon: Icon, title, detail }) => (
-              <div key={title} className="flex items-start gap-3">
-                <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full border border-[#e3e3de] bg-white">
-                  <Icon className="size-3.5 text-[#6b706f]" aria-hidden="true" />
-                </span>
-                <div className="min-w-0">
-                  <p className="font-display text-[14px] font-medium text-[#202322]">{title}</p>
-                  <p className="mt-0.5 text-[12.5px] leading-relaxed text-[#6b706f]">{detail}</p>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+            <div className="mt-6 border-t border-[#e3e3de] pt-5">
+              <h3 className="font-display text-[17px] leading-tight font-medium tracking-[-0.01em] text-[#202322]">
+                What GapLens checks
+              </h3>
+              <ul className="mt-4 space-y-[14px]">
+                {[
+                  { icon: CheckCircle2, title: "Verified in source", detail: "A claim supported by one or more sources." },
+                  { icon: Circle, title: "Potential gap", detail: "Important information not found in reviewed sources." },
+                  { icon: ArrowLeftRight, title: "Possible contradiction", detail: "Conflicting claims across different sources." },
+                  { icon: Clock3, title: "Potentially outdated", detail: "Information that may no longer be current." },
+                ].map(({ icon: Icon, title, detail }) => (
+                  <li key={title} className="flex items-start gap-2.5">
+                    <Icon className="mt-[3px] size-4 shrink-0 text-[#6b706f]" aria-hidden="true" />
+                    <div className="min-w-0">
+                      <p className="font-display text-[13.5px] font-medium text-[#202322]">{title}</p>
+                      <p className="mt-0.5 text-[12px] leading-relaxed text-[#6b706f]">{detail}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
 
-        <div className="flex items-center justify-between px-1 text-xs text-muted-foreground">
-          <span>{hydrated ? "Draft saved in this browser" : "Loading draft…"}</span>
-          <button type="button" onClick={clearDraft} className="underline-offset-4 hover:text-foreground hover:underline">
-            Clear draft
-          </button>
-        </div>
-      </aside>
+          <div className="mt-3 flex items-center justify-between px-1 text-[11.5px] text-[#9a9e99]">
+            <span>{hydrated ? "Draft saved in this browser" : "Loading draft…"}</span>
+            <button
+              type="button"
+              onClick={clearDraft}
+              className="underline-offset-4 transition-colors hover:text-[#202322] hover:underline"
+            >
+              Clear draft
+            </button>
+          </div>
+        </aside>
       </div>
     </div>
   );

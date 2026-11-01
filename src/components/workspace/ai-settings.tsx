@@ -41,21 +41,40 @@ export function AiSettings({ server }: { server: ServerLlmStatus }) {
   const active = saved ? `${PROVIDERS[saved.provider].name} (your key ${maskKey(saved.apiKey)})` : server.activeProvider ? `${PROVIDERS[server.activeProvider].name} (server key)` : null;
 
   return (
-    <div className="space-y-3 rounded-lg border bg-card p-4">
+    <div className="rounded-lg border border-[#e3e3de] bg-[#f7f6f2] p-4">
       <div className="flex items-start gap-2.5">
-        <KeyRound className="mt-0.5 size-4 shrink-0 text-violet-600" aria-hidden="true" />
-        <div className="min-w-0 text-sm">
-          <p className="font-medium">AI provider</p>
-          <p className="text-muted-foreground">{active ?? <span className="text-amber-700">Configuration required: no AI key yet.</span>}</p>
+        <KeyRound className="mt-0.5 size-3.5 shrink-0 text-[#6b706f]" aria-hidden="true" />
+        <div className="min-w-0 text-[12.5px]">
+          <p className="font-medium text-[#202322]">Use your own AI key</p>
+          <p className="mt-0.5 text-[#6b706f]">
+            {active ? (
+              <span className="text-[#202322]">{active}</span>
+            ) : (
+              <span className="text-[#b58a42]">Not configured.</span>
+            )}
+            {active ? " Paste a different key to switch providers." : " Paste a key to run the AI stages."}
+          </p>
         </div>
       </div>
       {!open ? (
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 rounded-full border-[#e3e3de] bg-white px-4 text-[12px] font-medium text-[#202322] shadow-none hover:border-[#202322]/25 hover:bg-[#f4f3ef]"
+            onClick={() => setOpen(true)}
+          >
             {saved ? "Change key" : "Use my own key"}
           </Button>
           {saved && (
-            <Button type="button" variant="ghost" size="sm" onClick={() => saveByoSettings(null)}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 rounded-full text-[12px] text-[#6b706f] hover:bg-[#f2f1ed] hover:text-[#202322]"
+              onClick={() => saveByoSettings(null)}
+            >
               Remove my key
             </Button>
           )}
@@ -76,7 +95,10 @@ export function AiSettings({ server }: { server: ServerLlmStatus }) {
             <legend className="text-xs font-medium">Provider</legend>
             <div className="flex gap-2" role="radiogroup">
               {(Object.keys(PROVIDERS) as (keyof typeof PROVIDERS)[]).map((p) => (
-                <label key={p} className={`flex cursor-pointer items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs ${provider === p ? "border-brand bg-brand-soft" : ""}`}>
+                <label
+                  key={p}
+                  className={`flex cursor-pointer items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[12px] ${provider === p ? "border-[#202725] bg-[#eaf0e6] text-[#536d53]" : "border-[#e3e3de] bg-white text-[#6b706f]"}`}
+                >
                   <input type="radio" name={`${id}-provider`} value={p} checked={provider === p} onChange={() => setProvider(p)} className="accent-[var(--brand)]" />
                   {PROVIDERS[p].name}
                 </label>
@@ -95,16 +117,28 @@ export function AiSettings({ server }: { server: ServerLlmStatus }) {
             <Input id={`${id}-model`} placeholder={provider === "gemini" ? server.geminiModel : server.openrouterModel} value={model} onChange={(e) => setModel(e.target.value)} />
           </div>
           <div className="flex gap-2">
-            <Button type="submit" size="sm" variant="brand" disabled={!key.trim()}>
+            <Button
+              type="submit"
+              size="sm"
+              variant="brand"
+              disabled={!key.trim()}
+              className="h-9 rounded-md bg-[#202725] text-[12.5px] font-medium text-white shadow-none hover:bg-[#2f3633]"
+            >
               Save in this browser
             </Button>
-            <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(false)}>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => setOpen(false)}
+              className="h-9 rounded-md text-[12.5px] text-[#6b706f] hover:bg-[#f2f1ed] hover:text-[#202322]"
+            >
               Cancel
             </Button>
           </div>
         </form>
       )}
-      <p className="flex items-start gap-1.5 text-[11px] leading-relaxed text-muted-foreground">
+      <p className="flex items-start gap-1.5 text-[11px] leading-relaxed text-[#9a9e99]">
         <ShieldCheck className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
         Your key stays in this browser (localStorage) and is sent only with analysis requests. GapLens never stores or logs it.
       </p>

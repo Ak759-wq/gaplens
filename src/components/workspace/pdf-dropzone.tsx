@@ -44,7 +44,7 @@ export function PdfDropzone({
 
   return (
     <div className="space-y-2">
-      <span className="text-[13px] font-medium text-[#202322]" id={`${id}-label`}>
+      <span className="sr-only" id={`${id}-label`}>
         PDF documents
       </span>
       <label
@@ -60,20 +60,21 @@ export function PdfDropzone({
           if (!disabled) handle(e.dataTransfer.files);
         }}
         className={cn(
-          "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[#cfd1ca] bg-[#faf9f6] px-4 py-10 text-center transition-colors",
-          "focus-within:ring-[3px] focus-within:ring-[#536d53]/20 hover:border-[#9a9e99] hover:bg-[#f4f4f0]",
+          "flex cursor-pointer flex-col items-center justify-center gap-2.5 rounded-xl border border-dashed border-[#d8d9d2] bg-white px-4 py-9 text-center transition-colors",
+          "focus-within:ring-[3px] focus-within:ring-[#536d53]/20 hover:border-[#b9bbb3] hover:bg-[#fbfbf8]",
           dragging && "border-[#536d53] bg-[#eaf0e6]",
           disabled && "pointer-events-none opacity-50",
         )}
       >
-        <UploadCloud className="size-7 text-[#9a9e99]" aria-hidden="true" />
-        <span className="text-sm">
-          <span className="font-medium text-[#202322]">Drop PDF files here</span>
-          <span className="text-[#6b706f]"> or browse</span>
+        <UploadCloud className="size-5 text-[#6b706f]" aria-hidden="true" />
+        <span className="text-[13.5px] text-[#202322]">
+          Drop PDF files here or <span className="underline underline-offset-2">browse</span>
         </span>
-        <span className="text-xs text-[#9a9e99]">
-          Add at least 2 usable sources · Up to {MAX_SOURCES} sources · PDF only, up to{" "}
-          {Math.round(MAX_PDF_BYTES / 1024 / 1024)} MB each
+        <span className="text-[12px] text-[#9a9e99]">
+          Add at least 2 usable sources · Up to {MAX_SOURCES} sources
+        </span>
+        <span className="sr-only">
+          PDF only, up to {Math.round(MAX_PDF_BYTES / 1024 / 1024)} MB each.
         </span>
         <input
           ref={inputRef}

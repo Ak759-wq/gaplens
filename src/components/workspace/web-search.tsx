@@ -19,9 +19,9 @@ export function WebSearch({ configured, onAdd, existing }: { configured: boolean
 
   if (!configured) {
     return (
-      <div className="rounded-lg border border-dashed px-4 py-3 text-xs text-muted-foreground">
-        <span className="font-medium text-foreground">Web search:</span> configuration required (set <code>TAVILY_API_KEY</code> on the server). Add URLs manually in the meantime.
-      </div>
+      <p className="text-[11.5px] text-[#9a9e99]">
+        Web search is not configured. Add URLs manually above.
+      </p>
     );
   }
 
@@ -40,10 +40,25 @@ export function WebSearch({ configured, onAdd, existing }: { configured: boolean
 
   return (
     <div className="space-y-2">
-      <Label htmlFor={id}>Find sources (web search)</Label>
-      <div className="flex gap-2">
-        <Input id={id} value={q} placeholder="e.g. Central Sector Scholarship 2026-27 last date" onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), q.trim().length >= 3 && run())} />
-        <Button type="button" variant="outline" onClick={run} disabled={busy || q.trim().length < 3}>
+      <Label htmlFor={id} className="text-[12.5px] text-[#6b706f]">
+        Find sources (web search)
+      </Label>
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <Input
+          id={id}
+          value={q}
+          placeholder="e.g. Central Sector Scholarship 2026-27 last date"
+          className="h-10 rounded-lg border-[#e3e3de] bg-white text-[13.5px] shadow-none placeholder:text-[#9a9e99] focus-visible:border-[#202725]/30 focus-visible:ring-[#202725]/10"
+          onChange={(e) => setQ(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), q.trim().length >= 3 && run())}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          onClick={run}
+          disabled={busy || q.trim().length < 3}
+          className="h-10 shrink-0 rounded-lg border-[#e3e3de] bg-white text-[13.5px] shadow-none hover:bg-[#f7f6f2]"
+        >
           {busy ? <Loader2 className="animate-spin" /> : <Search />} Search
         </Button>
       </div>

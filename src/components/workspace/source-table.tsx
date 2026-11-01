@@ -5,14 +5,12 @@ import {
   AlertCircle,
   BadgeCheck,
   FileText,
-  Globe,
   MoreHorizontal,
   Trash2,
   UploadCloud,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatBytes } from "@/lib/validation";
-import { cn } from "@/lib/utils";
 import type { DraftSource } from "./types";
 
 function sourceDomain(url: string): string {
@@ -38,21 +36,21 @@ function formatDate(iso: string): string {
 function StatusBadge({ source }: { source: DraftSource }) {
   if (source.extractionError) {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-[#e7c7c3] bg-[#f9ecea] px-2 py-0.5 text-[11px] font-medium text-[#a3655e]">
-        <AlertCircle className="size-3.5" aria-hidden="true" /> Extraction failed
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-[#e7c7c3] bg-[#f9ecea] px-2.5 py-1 text-[11px] font-medium text-[#a3655e]">
+        <AlertCircle className="size-3" aria-hidden="true" /> Extraction failed
       </span>
     );
   }
   if (source.kind === "pdf" && !source.file) {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-[#eadfc7] bg-[#fbf6e9] px-2 py-0.5 text-[11px] font-medium text-[#8b6a33]">
-        <UploadCloud className="size-3.5" aria-hidden="true" /> Re-attach file
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-[#eadfc7] bg-[#fbf6e9] px-2.5 py-1 text-[11px] font-medium text-[#8b6a33]">
+        <UploadCloud className="size-3" aria-hidden="true" /> Re-attach file
       </span>
     );
   }
   // A usable, attached source that is queued for the pipeline.
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-[#d6e3d3] bg-[#eaf0e6] px-2 py-0.5 text-[11px] font-medium text-[#536d53]">
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-transparent bg-[#eaf0e6] px-2.5 py-1 text-[11px] font-medium text-[#536d53]">
       <BadgeCheck className="size-3.5" aria-hidden="true" /> Ready
     </span>
   );
@@ -88,7 +86,7 @@ function RowMenu({ title, onRemove }: { title: string; onRemove: () => void }) {
         type="button"
         variant="ghost"
         size="icon"
-        className="size-8 text-[#9a9e99] hover:bg-[#f2f1ed] hover:text-[#202322]"
+        className="size-8 rounded-md text-[#9a9e99] hover:bg-[#f2f1ed] hover:text-[#202322]"
         aria-label={`Actions for ${title}`}
         aria-haspopup="menu"
         aria-expanded={open}
@@ -121,63 +119,52 @@ function RowMenu({ title, onRemove }: { title: string; onRemove: () => void }) {
 export function SourceTable({ sources, onRemove }: { sources: DraftSource[]; onRemove: (id: string) => void }) {
   if (sources.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-[#d4d5cf] bg-[#faf9f6] px-6 py-10 text-center">
-        <p className="text-sm font-medium text-[#202322]">No sources added yet</p>
-        <p className="mt-1 text-sm text-[#6b706f]">
-          Add at least two sources. GapLens verifies them when analysis starts.
-        </p>
-      </div>
+      <p className="border-t border-[#e3e3de] pt-4 text-[12.5px] leading-relaxed text-[#9a9e99]">
+        No sources added yet. Add at least two; GapLens verifies them when analysis starts.
+      </p>
     );
   }
 
   return (
-    <ul className="divide-y divide-[#eceae4] border-t border-[#e3e3de]">
+    <ul className="divide-y divide-[#edede7] border-t border-[#e3e3de]">
       {sources.map((source) => {
         const isUrl = source.kind === "url";
         const title = isUrl ? sourceDomain(source.url) : source.fileName;
         const meta = [
-          isUrl ? sourceDomain(source.url) : "PDF document",
+          isUrl ? "Website" : "PDF document",
           !isUrl ? formatBytes(source.size) : null,
-          formatDate(source.addedAt),
+          `Added ${formatDate(source.addedAt)}`,
         ]
           .filter(Boolean)
           .join(" · ");
         return (
-          <li key={source.id} className="flex items-start gap-3 py-3.5">
-            <span
-              className={cn(
-                "flex size-9 shrink-0 items-center justify-center rounded-lg border",
-                isUrl
-                  ? "border-[#d6e3d3] bg-[#eaf0e6] text-[#536d53]"
-                  : "border-[#e3e3de] bg-[#f2f1ed] text-[#6b706f]",
-              )}
-            >
-              {isUrl ? <Globe className="size-4" /> : <FileText className="size-4" />}
+          <li key={source.id} className="flex items-center gap-3 py-3">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-[#eceae4] bg-[#f7f6f2] text-[#6b706f]">
+              <FileText className="size-4" aria-hidden="true" />
             </span>
             <div className="min-w-0 flex-1">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="truncate text-sm font-medium text-[#202322]">{title}</h3>
-                    {source.example && (
-                      <span className="rounded-full border border-[#d6e3d3] bg-[#eaf0e6] px-2 py-0.5 text-[10px] font-medium text-[#536d53]">
-                        Example source
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-0.5 truncate text-xs text-[#6b706f]" title={isUrl ? source.url : source.fileName}>
-                    {meta}
-                  </p>
-                </div>
-                <RowMenu title={title} onRemove={() => onRemove(source.id)} />
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="truncate text-[13.5px] font-medium text-[#202322]">{title}</h3>
+                {source.example && (
+                  <span className="rounded-full border border-[#e3e3de] bg-[#f7f6f2] px-2 py-[1px] text-[10.5px] font-medium text-[#6b706f]">
+                    Example source
+                  </span>
+                )}
               </div>
-              <div className="mt-2">
+              <p className="mt-0.5 truncate text-[12px] text-[#6b706f]" title={isUrl ? source.url : source.fileName}>
+                {meta}
+              </p>
+              {source.extractionError && (
+                <p className="mt-1.5 text-[11.5px] leading-relaxed text-[#a3655e]">{source.extractionError}</p>
+              )}
+              <div className="mt-1.5 sm:hidden">
                 <StatusBadge source={source} />
               </div>
-              {source.extractionError && (
-                <p className="mt-2 text-xs leading-relaxed text-[#a3655e]">{source.extractionError}</p>
-              )}
             </div>
+            <div className="hidden shrink-0 sm:block">
+              <StatusBadge source={source} />
+            </div>
+            <RowMenu title={title} onRemove={() => onRemove(source.id)} />
           </li>
         );
       })}
