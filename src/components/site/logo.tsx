@@ -96,11 +96,13 @@ export function Logo({
         variant={variant}
         className={cn("transition-transform duration-500", tile ? "group-hover:scale-[1.04]" : "group-hover:rotate-[24deg]")}
       />
-      <span className={cn("font-semibold tracking-[-0.03em]", tile ? "text-[20px] text-white" : "text-[17px]")}>
-        Gap
-        <span className={cn("font-normal", tile ? "text-white" : tone === "dark" ? "text-white/80" : "text-foreground/75")}>
-          Lens
-        </span>
+      <span
+        className={cn(
+          "tracking-[-0.01em]",
+          tile ? "text-[20px] font-semibold text-white" : "font-display text-[19px] font-medium",
+        )}
+      >
+        Gap<span className={cn("font-normal", tile ? "text-white" : "")}>Lens</span>
       </span>
     </Link>
   );

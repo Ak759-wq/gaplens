@@ -3,7 +3,7 @@
 import { useId, useRef, useState } from "react";
 import { UploadCloud } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { MAX_PDF_BYTES, checkPdfFile } from "@/lib/validation";
+import { MAX_PDF_BYTES, MAX_SOURCES, checkPdfFile } from "@/lib/validation";
 
 export function PdfDropzone({
   existingKeys,
@@ -44,7 +44,9 @@ export function PdfDropzone({
 
   return (
     <div className="space-y-2">
-      <span className="text-sm font-medium text-[#202322]" id={`${id}-label`}>Add PDF documents</span>
+      <span className="text-[13px] font-medium text-[#202322]" id={`${id}-label`}>
+        PDF documents
+      </span>
       <label
         htmlFor={id}
         onDragOver={(e) => {
@@ -58,17 +60,21 @@ export function PdfDropzone({
           if (!disabled) handle(e.dataTransfer.files);
         }}
         className={cn(
-          "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-[#cfd1ca] bg-[#faf9f6] px-4 py-7 text-center transition-colors",
-          "focus-within:ring-[3px] focus-within:ring-[#536d53]/20 hover:bg-[#f4f4f0]",
+          "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[#cfd1ca] bg-[#faf9f6] px-4 py-10 text-center transition-colors",
+          "focus-within:ring-[3px] focus-within:ring-[#536d53]/20 hover:border-[#9a9e99] hover:bg-[#f4f4f0]",
           dragging && "border-[#536d53] bg-[#eaf0e6]",
           disabled && "pointer-events-none opacity-50",
         )}
       >
-        <UploadCloud className="size-6 text-[#6b706f]" aria-hidden="true" />
+        <UploadCloud className="size-7 text-[#9a9e99]" aria-hidden="true" />
         <span className="text-sm">
-          <span className="font-medium text-[#202322]">Choose PDFs</span> or drag them here
+          <span className="font-medium text-[#202322]">Drop PDF files here</span>
+          <span className="text-[#6b706f]"> or browse</span>
         </span>
-        <span className="text-xs text-[#6b706f]">PDF only, up to {Math.round(MAX_PDF_BYTES / 1024 / 1024)} MB each</span>
+        <span className="text-xs text-[#9a9e99]">
+          Add at least 2 usable sources · Up to {MAX_SOURCES} sources · PDF only, up to{" "}
+          {Math.round(MAX_PDF_BYTES / 1024 / 1024)} MB each
+        </span>
         <input
           ref={inputRef}
           id={id}
@@ -85,7 +91,7 @@ export function PdfDropzone({
         />
       </label>
       {errors.length > 0 && (
-        <ul role="alert" className="space-y-1 text-xs text-destructive">
+        <ul role="alert" className="space-y-1 text-xs text-[#c77f76]">
           {errors.map((e) => (
             <li key={e}>{e}</li>
           ))}
